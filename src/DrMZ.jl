@@ -1,8 +1,5 @@
 """
-This module contains the various libraries for my disseration work. It includes
-    files for generating and training operator neural nets, finding the custom
-    basis functions, solving PDEs using the custom basis functions, and
-    construction of reduced order models.
+This module contains the various libraries for generating data and training operator neural nets, finding the custom basis functions, solving PDEs using the custom basis functions, and construction of reduced order models.
 
 Make sure the location of this file is specified in your Julia LOAD_PATH is you
 are working locally.
@@ -13,8 +10,10 @@ Add this to your startup file also, "~/.julia/config/startup.jl"
 """
 module DrMZ
 
-# Export the functions
-export predict
+# Export the functions for OperatorNN.jl
+export predict, lossall
+
+
 # export ck, markov, tmodel
 #
 # # Load required packages

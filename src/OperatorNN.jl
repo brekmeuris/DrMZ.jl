@@ -20,19 +20,19 @@ function predict(branch,trunk,initial_condition,x_locations,t_values)
 end
 
 """
+    loss_all(branch,trunk,initial_conditon,solution_location,target_value)
+
 
 
 
 
 
 """
-function loss_all(x,y,z,b,t)
-    ŷ = zeros(1,size(z,2));
-    for i in 1:size(z,2)
-        ŷ[i] = transpose(b(x[:,i]))*t(y[:,i]);
+function loss_all(branch,trunk,initial_conditon,solution_location,target_value)
+    yhat = zeros(1,size(target_value,2));
+    for i in 1:size(target_value,2)
+        yhat[i] = transpose(branch(initial_condition[:,i]))*trunk(solution_location[:,i]);
     end
-    error = (1/size(z,2))*sum((ŷ.-z).^2,)
-    # error = sum((ŷ.-z).^2)
-    # error = mean((ŷ.-z).^2);
+    error = (1/size(target_value,2))*sum((yhat.-target_value).^2,)
     return error
 end
