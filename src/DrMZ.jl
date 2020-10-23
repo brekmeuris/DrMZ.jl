@@ -11,16 +11,16 @@ Add this to your startup file also, "~/.julia/config/startup.jl"
 module DrMZ
 
 # Export the functions for OperatorNN.jl
-export predict, lossall
+export predict, loss_all
 
+# Export the functions for PDESolve.jl
+export advection_pde!
 
-# export ck, markov, tmodel
-#
-# # Load required packages
+# Load required packages
 # using FFTW
-#
+
 # Load functions
 include("OperatorNN.jl")
-# include("burgers_expansion.jl")
+include("PDESolve.jl")
 
 end
