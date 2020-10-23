@@ -13,15 +13,15 @@ Add this to your startup file also, "~/.julia/config/startup.jl"
 """
 module DrMZ
 
-# # Export the functions
-# export fft_norm, ifft_norm
+# Export the functions
+export predict
 # export ck, markov, tmodel
 #
 # # Load required packages
 # using FFTW
 #
-# # Load functions
-# include("general_functions.jl")
+# Load functions
+include("OperatorNN.jl")
 # include("burgers_expansion.jl")
 
 end
