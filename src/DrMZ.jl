@@ -13,7 +13,7 @@ Add this to your startup file also, "~/.julia/config/startup.jl"
 module DrMZ
 
 # Export the functions for OperatorNN.jl
-export predict, loss_all, build_branch_model, build_trunk_model, train_model, loss, solution_extraction, exp_kernel_periodic, generate_periodic_functions
+export predict, loss_all, build_branch_model, build_trunk_model, train_model, loss, exp_kernel_periodic, generate_periodic_functions, solution_extraction, generate_periodic_train_test, save_model, save_data
 
 # Export the functions for PDESolve.jl
 export advection_pde!
@@ -25,9 +25,14 @@ using Flux.Data: DataLoader
 using Flux: mse
 using ProgressMeter: @showprogress
 using Distributions: MvNormal
-using LinearAlgebra: Symmetric, norm, eigmin
+using LinearAlgebra: Symmetric, norm, eigmin, I
 using Random: randperm
 using ColorSchemes # Cut this one down...
+using DifferentialEquations
+# using Interpolations
+using BSON: @save
+using BSON: @load
+using Printf
 
 # Load functions
 include("OperatorNN.jl")

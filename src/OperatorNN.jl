@@ -34,8 +34,7 @@ function loss_all(branch,trunk,initial_condition,solution_location,target_value)
     for i in 1:size(target_value,2)
         yhat[i] = transpose(branch(initial_condition[:,i]))*trunk(solution_location[:,i]);
     end
-    error = (1/size(target_value,2))*sum((yhat.-target_value).^2,);
-    return error
+    return (1/size(target_value,2))*sum((yhat.-target_value).^2,);
 end
 
 """
@@ -49,10 +48,9 @@ output: branch (Flux dense layer)
 
 """
 function build_branch_model(input_size,neurons;activation=relu)
-    branch = Chain(Dense(input_size,neurons,activation),
+    return Chain(Dense(input_size,neurons,activation),
         Dense(neurons,neurons,activation),
         Dense(neurons,neurons))|>f64; # Pipe it to be Float64
-    return branch
 end
 
 """
@@ -66,11 +64,10 @@ output: trunk (Flux dense layer)
 
 """
 function build_trunk_model(input_size,neurons,activation=relu)
-    trunk = Chain(Dense(input_size,neurons,activation),
+    return Chain(Dense(input_size,neurons,activation),
         Dense(neurons,neurons,activation),
         Dense(neurons,neurons,activation),
         Dense(neurons,neurons,activation))|>f64; # Pipe it to be Float64
-    return trunk
 end
 
 """
@@ -122,7 +119,7 @@ input: x locations, number of functions
 output: random periodic functions
 
 """
-function generate_periodic_functions(x_locations,number_functions;length_scale=0.5)
+function generate_periodic_functions(x_locations,number_functions,length_scale)
     sigma = exp_kernel_periodic(x_locations,length_scale); # Covariance
     mu = zeros(size(x_locations,1)); # Zero mean
     # Force the covariance matrix to be positive definite, by construction it is "approximately" Hermitian but Julia is strict
@@ -133,6 +130,9 @@ function generate_periodic_functions(x_locations,number_functions;length_scale=0
 end
 
 """
+    solution_extraction(t,x,u_sol,u_initial,num_extracted_points) CLEAN UP VARIABLES...
+
+FINISH
 
 """
 function solution_extraction(t,x,u_sol,u_initial,num_extracted_points)
@@ -160,4 +160,125 @@ function solution_extraction(t,x,u_sol,u_initial,num_extracted_points)
         sol = reshape(u_sol[indices],(1,num_extracted_points));
         return initial, sol_location, sol
     end
+end
+
+"""
+    generate_periodic_train_test(L1,L2,t_span,number_sensors,number_test_functions,number_train_functions,number_solution _points;length_scale=0.5,batch=number_solution_points,dt=1e-3)
+
+FINISH!!! THIS SHOULD ALSO PASS IN RHS AND ANY PARAMETERS NEEDED FOR ODE SOLVE
+CREATE ALTERNATIVE FUNCTION THAT IS GENERATE_STANDARD_TRAIN_TEST FOR FUNCTIONS OVER FULL DOMAIN
+
+EDIT THIS SO THAT WHAT IS OUTPUT IS OVER FULL DOMAIN.
+
+"""
+function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points;length_scale=0.5,batch=number_solution_points,dt=1e-3)
+
+    x_full = range(L1,stop = L2,length = number_sensors+1); # Full domain
+    random_ics = generate_periodic_functions(x_full,Int(number_train_functions + number_test_functions),length_scale)
+
+    # Set up x domain and wave vector for spectral solution
+    j = reduce(vcat,[0:1:number_sensors-1]);
+    x = ((L2-L1).*j)./number_sensors;
+    k = reduce(vcat,(2*π/(L2-L1))*[0:number_sensors/2-1 -number_sensors/2:-1]);
+
+    # Generate the dataset using spectral method
+    interp_train_sample = zeros(size(x,1),number_train_functions);
+    interp_test_sample = zeros(size(x,1),number_test_functions);
+    t_length = t_span[2]/dt + 1;
+    t = range(t_span[1],stop = t_span[2], length = Int(t_length));
+    u_train = zeros(Int(t_length),number_sensors,number_train_functions);
+    u_test = zeros(Int(t_length),number_sensors,number_test_functions);
+    train_ic = zeros(number_sensors,number_solution_points,number_train_functions);
+    train_loc = zeros(2,number_solution_points,number_train_functions);
+    train_target = zeros(1,number_solution_points,number_train_functions);
+    test_ic = zeros(number_sensors,number_solution_points,number_test_functions);
+    test_loc = zeros(2,number_solution_points,number_test_functions);
+    test_target = zeros(1,number_solution_points,number_test_functions);
+
+    p = [number_sensors,(L2-L1)];
+
+    @showprogress 1 "Building data set for training for each function..." for i in 1:number_train_functions
+
+        interp_train_sample[:,i] = random_ics[1:end-1,i];
+
+        # Transform random initial condition to Fourier domain
+        uhat0 = fft(interp_train_sample[:,i]);
+
+        # Solve the system of ODEs in Fourier domain
+        prob = ODEProblem(advection_pde!,uhat0,t_span,p);
+        sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)
+
+        for j in 1:size(sol.t,1) # Reshape output and plot
+            u_train[j,:,i] = real.(ifft(sol.u[j])); # u[t,x,IC]
+        end
+
+        train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(t,x,u_train[:,:,i],interp_train_sample[:,i],number_solution_points);
+    end
+
+    @showprogress 1 "Building data set for testing for each function..." for i in 1:number_test_functions
+
+        interp_test_sample[:,i] = random_ics[1:end-1,Int(number_train_functions+i)];
+
+        # Transform random initial condition to Fourier domain
+        uhat0 = fft(interp_test_sample[:,i]); # Transform random initial condition to Fourier domain
+
+        # Solve the system of ODEs in Fourier domain
+        prob = ODEProblem(advection_pde!,uhat0,t_span,p);
+        sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)
+
+        for j in 1:size(sol.t,1) # Reshape output and plot
+            u_test[j,:,i] = real.(ifft(sol.u[j])); # u[t,x,IC]
+        end
+
+        test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(t,x,u_test[:,:,i],interp_test_sample[:,i],number_solution_points);
+    end
+
+    # Combine data sets from each function
+    opnn_train_ic = reshape(hcat(train_ic...),(number_sensors,Int(number_solution_points*number_train_functions)));
+    opnn_train_loc = reshape(hcat(train_loc...),(2,Int(number_solution_points*number_train_functions)));
+    opnn_train_target = reshape(hcat(train_target...),(1,Int(number_solution_points*number_train_functions)));
+    opnn_test_ic = reshape(hcat(test_ic...),(number_sensors,Int(number_solution_points*number_test_functions)));
+    opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
+    opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
+
+    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize = batch);
+    test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize = batch);
+    return train_data, test_data, u_train, u_test
+end
+
+"""
+    save_model(branch,trunk,n_epoch)
+
+FINISH!!!
+
+"""
+function save_model(branch,trunk,n_epoch)
+    @save @sprintf("branch_epochs_%i.bson",n_epoch) branch
+    @save @sprintf("trunk_epochs_%i.bson",n_epoch) trunk
+end
+
+"""
+    save_data(train_data,test_data,u_test,u_train,n_epoch,number_solution_points,loss_all_train)
+
+FINISH!!!
+
+"""
+function save_data(train_data,test_data,u_test,u_train,n_epoch,number_solution_points,loss_all_train)
+    number_train_functions = Int(size(train_data.data[1],2)/number_solution_points);
+    number_test_functions = Int(size(test_data.data[1],2)/number_solution_points);
+    @save @sprintf("u_sol_train_functions_%i.bson",number_train_functions) u_train
+    @save @sprintf("u_sol_test_functions_%i.bson",number_test_functions) u_test
+    train_ic = train_data.data[1];
+    train_loc = train_data.data[2];
+    train_sol = train_data.data[3];
+    test_ic = test_data.data[1];
+    test_loc = test_data.data[2];
+    test_sol = test_data.data[3];
+    @save @sprintf("train_ic_data_%i.bson",number_train_functions) train_ic
+    @save @sprintf("test_ic_data_%i.bson",number_test_functions) test_ic
+    @save @sprintf("train_loc_data_%i.bson",number_train_functions) train_loc
+    @save @sprintf("test_loc_data_%i.bson",number_test_functions) test_loc
+    @save @sprintf("train_target_data_%i.bson",number_train_functions) train_sol
+    @save @sprintf("test_target_data_%i.bson",number_test_functions) test_sol
+    @save @sprintf("train_loss_epochs_%i.bson",n_epoch) loss_all_train
 end
