@@ -197,7 +197,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
 
     p = [number_sensors,(L2-L1)];
 
-    @showprogress 1 "Building data set for training for each function..." for i in 1:number_train_functions
+    @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
 
         interp_train_sample[:,i] = random_ics[1:end-1,i];
 
@@ -215,7 +215,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
         train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(t,x,u_train[:,:,i],interp_train_sample[:,i],number_solution_points);
     end
 
-    @showprogress 1 "Building data set for testing for each function..." for i in 1:number_test_functions
+    @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
 
         interp_test_sample[:,i] = random_ics[1:end-1,Int(number_train_functions+i)];
 
@@ -243,7 +243,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
 
     train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize = batch);
     test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize = batch);
-    return train_data, test_data, u_train, u_test
+    return train_data, test_data, u_train, u_test, x, t # THIS X WILL NEED TO CHANGE ONCE WE EXPORT THE FULL X DOMAIN...
 end
 
 """
@@ -281,4 +281,14 @@ function save_data(train_data,test_data,u_test,u_train,n_epoch,number_solution_p
     @save @sprintf("train_target_data_%i.bson",number_train_functions) train_sol
     @save @sprintf("test_target_data_%i.bson",number_test_functions) test_sol
     @save @sprintf("train_loss_epochs_%i.bson",n_epoch) loss_all_train
+end
+
+"""
+    load_data(n_epoch,number_train_functions,number_test_functions)
+
+FINISH!!!
+
+"""
+function load_data(n_epoch,number_train_functions,number_test_functions)
+
 end

@@ -12,11 +12,17 @@ Add this to your startup file also, "~/.julia/config/startup.jl"
 """
 module DrMZ
 
+# Export the functions for General.jl
+export error_test_sse, error_test_rel
+
 # Export the functions for OperatorNN.jl
 export predict, loss_all, build_branch_model, build_trunk_model, train_model, loss, exp_kernel_periodic, generate_periodic_functions, solution_extraction, generate_periodic_train_test, save_model, save_data
 
 # Export the functions for PDESolve.jl
 export advection_pde!
+
+# Export the functions for DBasis.jl
+
 
 # Load required packages - only load functions that are used
 using FFTW: fft, ifft
@@ -33,9 +39,12 @@ using DifferentialEquations
 using BSON: @save
 using BSON: @load
 using Printf
+using Plots; gr()
 
 # Load functions
+include("General.jl")
 include("OperatorNN.jl")
 include("PDESolve.jl")
+include("DBasis.jl")
 
 end
