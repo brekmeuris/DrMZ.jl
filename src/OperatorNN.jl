@@ -10,7 +10,8 @@ output: u(x,t)
 """
 function predict(branch,trunk,initial_condition,x_locations,t_values)
     u = zeros(size(t_values,1),size(x_locations,1));
-    bkt = transpose(branch(initial_condition));
+    # bkt = transpose(branch(initial_condition));
+    bkt = branch(initial_condition)';
     for i in 1:size(t_values,1)
         for j in 1:size(x_locations,1)
             u[i,j] = bkt*trunk(vcat(t_values[i],x_locations[j]));
@@ -32,7 +33,8 @@ output: error
 function loss_all(branch,trunk,initial_condition,solution_location,target_value)
     yhat = zeros(1,size(target_value,2));
     for i in 1:size(target_value,2)
-        yhat[i] = transpose(branch(initial_condition[:,i]))*trunk(solution_location[:,i]);
+        # yhat[i] = transpose(branch(initial_condition[:,i]))*trunk(solution_location[:,i]);
+        yhat[i] = branch(initial_condition[:,i])'*trunk(solution_location[:,i]);
     end
     return (1/size(target_value,2))*sum((yhat.-target_value).^2,);
 end
@@ -81,7 +83,8 @@ output: trained branch, trained trunk, MSE loss for each epoch
 
 """
 function train_model(branch,trunk,n_epoch,train_data;learning_rate=0.00001)
-    loss(x,y,z) = Flux.mse(transpose(branch(x))*trunk(y),z);
+    # loss(x,y,z) = Flux.mse(transpose(branch(x))*trunk(y),z);
+    loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)
     par = Flux.params(branch,trunk);
     opt = ADAM(learning_rate);
     loss_all_train = Array{Float64}(undef,n_epoch+1,1);
@@ -134,30 +137,32 @@ end
 
 FINISH
 
+predict(branch,trunk,initial_condition,x_locations,t_values)
+
 """
-function solution_extraction(t,x,u_sol,u_initial,num_extracted_points)
-    if num_extracted_points >= size(u_sol,1)*size(u_sol,2)
+function solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
+    if number_solution_points >= size(solution,1)*size(solution,2)
         println("Invalid number of test points for the given dataset size!")
         return nothing
     else
         # Create a grid of the t,x data in the form of an array of tuples for accessing below
-        t_x_grid = Array{Tuple{Float64,Float64}}(undef,(size(u_sol,1), size(u_sol,2)));
-        for i in 1:size(u_sol,1)
-            for j in 1:size(u_sol,2)
-                t_x_grid[i,j] = (t[i],x[j]);
+        t_x_grid = Array{Tuple{Float64,Float64}}(undef,(size(solution,1), size(solution,2)));
+        for i in 1:size(solution,1)
+            for j in 1:size(solution,2)
+                t_x_grid[i,j] = (t_values[i],x_locations[j]);
             end
         end
-        lin_ind = reduce(vcat,size(u_sol[:]));
+        lin_ind = reduce(vcat,size(solution[:]));
         shuffled_indices = randperm(lin_ind) # Randomly shuffle the linear indices corresponding to the t,x data
-        indices = shuffled_indices[1:num_extracted_points] # From shuffled data, extract the number of test points for training
-        initial = repeat(reshape(u_initial,(length(u_initial),1)),1,num_extracted_points);
-        sol_location = zeros(2,num_extracted_points);
+        indices = shuffled_indices[1:number_solution_points] # From shuffled data, extract the number of test points for training
+        initial = repeat(reshape(initial_condition,(length(initial_condition),1)),1,number_solution_points);
+        sol_location = zeros(2,number_solution_points);
         for i in 1:2
-            for j in 1:num_extracted_points
+            for j in 1:number_solution_points
                 sol_location[i,j] = t_x_grid[indices[j]][i]
             end
         end
-        sol = reshape(u_sol[indices],(1,num_extracted_points));
+        sol = reshape(solution[indices],(1,number_solution_points));
         return initial, sol_location, sol
     end
 end
@@ -175,11 +180,12 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
 
     x_full = range(L1,stop = L2,length = number_sensors+1); # Full domain
     random_ics = generate_periodic_functions(x_full,Int(number_train_functions + number_test_functions),length_scale)
+    dL = abs(L2-L1);
 
     # Set up x domain and wave vector for spectral solution
     j = reduce(vcat,[0:1:number_sensors-1]);
-    x = ((L2-L1).*j)./number_sensors;
-    k = reduce(vcat,(2*π/(L2-L1))*[0:number_sensors/2-1 -number_sensors/2:-1]);
+    x = (dL.*j)./number_sensors;
+    k = reduce(vcat,(2*π/dL)*[0:number_sensors/2-1 -number_sensors/2:-1]);
 
     # Generate the dataset using spectral method
     interp_train_sample = zeros(size(x,1),number_train_functions);
@@ -195,7 +201,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
     test_loc = zeros(2,number_solution_points,number_test_functions);
     test_target = zeros(1,number_solution_points,number_test_functions);
 
-    p = [number_sensors,(L2-L1)];
+    p = [number_sensors,dL];
 
     @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
 
@@ -212,7 +218,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
             u_train[j,:,i] = real.(ifft(sol.u[j])); # u[t,x,IC]
         end
 
-        train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(t,x,u_train[:,:,i],interp_train_sample[:,i],number_solution_points);
+        train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x,t,u_train[:,:,i],interp_train_sample[:,i],number_solution_points);
     end
 
     @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
@@ -230,7 +236,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
             u_test[j,:,i] = real.(ifft(sol.u[j])); # u[t,x,IC]
         end
 
-        test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(t,x,u_test[:,:,i],interp_test_sample[:,i],number_solution_points);
+        test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x,t,u_test[:,:,i],interp_test_sample[:,i],number_solution_points);
     end
 
     # Combine data sets from each function
