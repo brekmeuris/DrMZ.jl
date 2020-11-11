@@ -5,8 +5,7 @@
 function basis_OpNN(branch,trunk,initial_condition,x_locations,n)
     basis = zeros(size(x_locations,1)); # make size of ic...
     for i in 1:size(x_locations,1);
-        # basis[i] = transpose(branch(initial_condition)[n])*trunk(vcat(0,x_locations[i]))[n];
-        basis[i] = branch(initial_condition)[n]'*trunk(vcat(0,x_locations[i]))[n];
+        basis[i] = trunk(vcat(0,x_locations[i]))[n]'*branch(initial_condition)[n];
     end
     return basis
 end
@@ -45,7 +44,7 @@ function build_basis(branch,trunk,initial_condition,x_locations;tol = 1e-15)
                 end
             elseif i != j
                 # if abs(orthonormal_basis[:,i]'*conj(orthonormal_basis[:,j])) > tol# || (efuncs_orthonorm[:,i]'*conj(efuncs_orthonorm[:,j]) < eps())
-                if abs(orthonormal_basis[:,i]'*orthonormal_basis[:,j]) > tol# || (efuncs_orthonorm[:,i]'*conj(efuncs_orthonorm[:,j]) < eps())
+                if abs(orthonormal_basis[:,j]'*orthonormal_basis[:,i]) > tol# || (efuncs_orthonorm[:,i]'*conj(efuncs_orthonorm[:,j]) < eps())
                     println("Not orthogonal to $tol... $i vs $j")
                     return nothing
                     break
@@ -68,7 +67,7 @@ function spectral_coefficients(basis,fnc)
         # coeffs[i] = dot(fnc,eigen[:,i]);
         # coeffs[i] = dot(fnc,eigen[:,i])/dot(eigen[:,i],eigen[:,i]); #fix this... Conjugate
         # coefficients[i] = (fnc'*conj(basis[:,i]))/(basis[:,i]'*conj(basis[:,i])); #Could this hurt stability?
-        coefficients[i] = (fnc'*basis[:,i])/(basis[:,i]'*basis[:,i]); #Could this hurt stability?
+        coefficients[i] = (basis[:,i]'*fnc)/(basis[:,i]'*basis[:,i]); #Could this hurt stability?
         # coeffs[i] = (fnc'*conj(eigen[:,i]))/norm(eigen[:,i]); #Could this hurt stability?
     end
     return coefficients
@@ -81,24 +80,48 @@ end
 function spectral_approximation(basis,coefficients)
     approximation = zeros(size(basis,1));
     for i = 1:size(basis,2)
-        approximation += coefficients[i]*basis[:,i];
+        approximation += coefficients[i]*basis[:,i]; # Do we need to scale this? 1/dL???
     end
     return approximation
+end
+
+"""
+    spectral_matrix(basis,Dbasis)
+
+"""
+function spectral_matrix(basis,Dbasis)
+    Dmatrix = (basis'*Dbasis)/(basis'*basis);
+    return Dmatrix
 end
 
 """
     generate_opnn_solution(L1,L2,t_span,N,basis,initial_condition)
 
 """
-function generate_opnn_basis_solution(L1,L2,t_span,N,basis,initial_condition;dt=1e-3)
+function generate_opnn_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3)
     u0 = spectral_coefficients(basis,initial_condition);
     dL = abs(L2-L1);
-    p = [basis,N,dL];
-    prob = ODEProblem(opnn_advection_pde!,u0,t_span,p);
+    Dbasis = fourier_diff(basis,N,dL);
+    Dmatrix = spectral_matrix(basis,Dbasis);
+    D2basis = fourier_diff(Dbasis,N,dL);
+    D2matrix = spectral_matrix(basis,D2basis);
+    p = [Dmatrix,D2matrix];
+    # prob = ODEProblem(opnn_advection_pde!,u0,t_span,p);
+    prob = ODEProblem(pde_function,u0,t_span,p);
     sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)#,RK4(),reltol=1e-10,abstol=1e-10) # ODE45 like solver, saveat = 0.5
     u_sol = zeros(size(sol.t,1),size(basis,1));
     for i in 1:size(sol.t,1)
         u_sol[i,:] = spectral_approximation(basis,sol.u[i]);
     end
     return u_sol
+end
+
+"""
+    save_basis(basis,N,n_epoch,pde_function)
+
+FINISH!!!
+
+"""
+function save_basis(basis,N,n_epoch,pde_function)
+    @save @sprintf("basis_%i_N_epochs_%i_%s.bson",N,n_epoch,pde_function) basis
 end

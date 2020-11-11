@@ -75,3 +75,18 @@ function reduced_initial_condition(L1,L2,N,x_locations,initial_condition)
     ic_interpolate = [ic_interpolate_fit(i) for i in x_interpolate];
     return x_interpolate, ic_interpolate
 end
+
+"""
+    reduced_initial_condition_full(L1,L2,N,x_locations,initial_condition)
+
+"""
+function reduced_initial_condition_full(L1,L2,N,x_locations,initial_condition)
+    dL = abs(L2-L1);
+    j = reduce(vcat,[0:1:(N-1)-1]);
+    x_interpolate = zeros(N);
+    x_interpolate[1:(N-1)] = (dL.*j)./(N-1);
+    x_interpolate[N] = L2;
+    ic_interpolate_fit = LinearInterpolation(x_locations,initial_condition)
+    ic_interpolate = [ic_interpolate_fit(i) for i in x_interpolate];
+    return x_interpolate, ic_interpolate
+end
