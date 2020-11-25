@@ -20,12 +20,19 @@ end
 
 
 """
-function fourier_diff(sol,N,dL)
-    h = 2*pi/N;
-    col = vcat(0, 0.5*(-1).^(1:N-1).*cot.((1:N-1)*h/2));
-    row = vcat(col[1], col[N:-1:2]);
-    diff_matrix = Toeplitz(col,row);
-    diff_sol = (2*pi/dL)*diff_matrix*sol; # Make dx calc abs...
+function fourier_diff(sol,N,dL;format="matrix")
+    if format == "matrix"
+        h = 2*pi/N;
+        col = vcat(0, 0.5*(-1).^(1:N-1).*cot.((1:N-1)*h/2));
+        row = vcat(col[1], col[N:-1:2]);
+        diff_matrix = Toeplitz(col,row);
+        diff_sol = (2*pi/dL)*diff_matrix*sol; # Make dx calc abs...
+    else
+        k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+        sol_k = fft(sol);
+        sol_k[Int(N/2)+1] = 0;
+        diff_sol = real.(ifft(im*k.*sol_k));
+    end
     return diff_sol
 end
 
@@ -103,7 +110,7 @@ end
 """
 function advection_diffusion_pde!(duhat,uhat,p,t_span)
     N, dL = p;
-    D = 0.015;
+    D = 0.1; #0.015
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -im*k.*uhat + D*(im*k).^2 .*uhat;
@@ -115,12 +122,12 @@ end
 """
 function opnn_advection_diffusion_pde!(du,u,p,t_span)
     Dmatrix, D2matrix = p;
-    D = 0.015;
+    D = 0.1; #0.015
     # uapprox = spectral_approximation(basis,u);
     # duapprox = fourier_diff(uapprox,N,dL);
     # duapprox2 = fourier_diff(duapprox,N,dL);
     # du .= -spectral_coefficients(basis,duapprox) + D*spectral_coefficients(basis,duapprox2);
-    du .= -Dmatrix*u + D*D2matrix*u;
+    du .= -Dmatrix*u .+ D*D2matrix*u;
 end
 
 # """
@@ -139,3 +146,26 @@ end
 #     duapprox2[N] = duapprox2[1];
 #     du .= -spectral_coefficients(basis,duapprox) + D*spectral_coefficients(basis,duapprox2);
 # end
+
+"""
+
+"""
+function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-6,atol=1e-8)
+    # Transform random initial condition to Fourier domain
+    uhat0 = fft(initial_condition);
+    dL = abs(L2-L1);
+
+    # Generate Fourier Galerkin solution for N
+    p = [N,dL];
+    t_length = tspan[2]/dt+1;
+
+    # Solve the system of ODEs in Fourier domain
+    prob = ODEProblem(pde_function,uhat0,tspan,p);
+    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt)
+
+    u_sol = zeros(Int(t_length),N);
+    for j in 1:size(sol.t,1) # Reshape output and plot
+        u_sol[j,:] = real.(ifft(sol.u[j])); # u[t,x,IC]
+    end
+    return u_sol
+end

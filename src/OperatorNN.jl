@@ -11,10 +11,10 @@ output: u(x,t)
 function predict(branch,trunk,initial_condition,x_locations,t_values)
     u = zeros(size(t_values,1),size(x_locations,1));
     # bkt = transpose(branch(initial_condition));
-    bk = branch(initial_condition);
+    bk = branch(initial_condition)';
     for i in 1:size(t_values,1)
         for j in 1:size(x_locations,1)
-            u[i,j] = trunk(vcat(t_values[i],x_locations[j]))'*bk;
+            u[i,j] = bk*trunk(vcat(t_values[i],x_locations[j]));
         end
     end
     return u
@@ -34,7 +34,7 @@ function loss_all(branch,trunk,initial_condition,solution_location,target_value)
     yhat = zeros(1,size(target_value,2));
     for i in 1:size(target_value,2)
         # yhat[i] = transpose(branch(initial_condition[:,i]))*trunk(solution_location[:,i]);
-        yhat[i] = trunk(solution_location[:,i])'*branch(initial_condition[:,i]);
+        yhat[i] = branch(initial_condition[:,i])'*trunk(solution_location[:,i]);
     end
     return (1/size(target_value,2))*sum((yhat.-target_value).^2,);
 end
@@ -65,8 +65,8 @@ input: input vector size, number of neurons
 output: branch (Flux dense layer)
 
 """
-function build_branch_model_reduced(input_size,neurons;activation=relu)
-    return Chain(Dense(input_size,neurons,activation),
+function build_branch_model_reduced(input_size,neurons;activation=relu)#,initialization=kaiming_uniform)
+    return Chain(Dense(input_size,neurons,activation),#;initW = kaiming_uniform, initb = zeros),
         # Dense(neurons,neurons,activation),
         Dense(neurons,neurons))|>f64; # Pipe it to be Float64
 end
@@ -98,10 +98,10 @@ input: input vector size, number of neurons
 output: trunk (Flux dense layer)
 
 """
-function build_trunk_model_reduced(input_size,neurons,activation=relu)
-    return Chain(Dense(input_size,neurons,activation),
+function build_trunk_model_reduced(input_size,neurons;activation=relu)#,initialization=kaiming_uniform)
+    return Chain(Dense(input_size,neurons,activation),#;initW = kaiming_uniform, initb = zeros),
         # Dense(neurons,neurons,activation),
-        Dense(neurons,neurons,activation),
+        Dense(neurons,neurons,activation),#;initW = kaiming_uniform, initb = zeros),
         Dense(neurons,neurons,activation))|>f64; # Pipe it to be Float64
 end
 
@@ -115,9 +115,9 @@ input: branch, trunk, number of training epochs, training data
 output: trained branch, trained trunk, MSE loss for each epoch
 
 """
-function train_model(branch,trunk,n_epoch,train_data;learning_rate=0.00001)
+function train_model(branch,trunk,n_epoch,train_data;learning_rate=1e-5)
     # loss(x,y,z) = Flux.mse(transpose(branch(x))*trunk(y),z);
-    loss(x,y,z) = Flux.mse(trunk(y)'*branch(x),z)
+    loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)
     par = Flux.params(branch,trunk);
     opt = ADAM(learning_rate);
     loss_all_train = Array{Float64}(undef,n_epoch+1,1);
@@ -241,7 +241,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
         uhat0 = fft(interp_train_sample[:,i]);
 
         # Solve the system of ODEs in Fourier domain
-        prob = ODEProblem(advection_pde!,uhat0,t_span,p);
+        prob = ODEProblem(pde_function,uhat0,t_span,p);
         sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)
 
         for j in 1:size(sol.t,1) # Reshape output and plot
@@ -259,7 +259,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
         uhat0 = fft(interp_test_sample[:,i]); # Transform random initial condition to Fourier domain
 
         # Solve the system of ODEs in Fourier domain
-        prob = ODEProblem(advection_pde!,uhat0,t_span,p);
+        prob = ODEProblem(pde_function,uhat0,t_span,p);
         sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)
 
         for j in 1:size(sol.t,1) # Reshape output and plot
@@ -277,8 +277,8 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
     opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
     opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
 
-    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize = batch);
-    test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize = batch);
+    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);
+    test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
     return train_data, test_data, u_train, u_test, x, t # THIS X WILL NEED TO CHANGE ONCE WE EXPORT THE FULL X DOMAIN...
 end
 
@@ -388,7 +388,7 @@ end
 FINISH!!!
 
 """
-function save_data(train_data,test_data,u_test,u_train,n_epoch,number_solution_points,loss_all_train,pde_function)
+function save_data(train_data,test_data,u_train,u_test,n_epoch,number_solution_points,loss_all_train,pde_function)
     number_train_functions = Int(size(train_data.data[1],2)/number_solution_points);
     number_test_functions = Int(size(test_data.data[1],2)/number_solution_points);
     @save @sprintf("u_sol_train_functions_%i_%s.bson",number_train_functions,pde_function) u_train
@@ -414,6 +414,106 @@ end
 FINISH!!!
 
 """
-function load_data(n_epoch,number_train_functions,number_test_functions)
-
+function load_data(n_epoch,number_train_functions,number_test_functions,pde_function)
+    @load @sprintf("branch_epochs_%i_%s.bson",n_epoch,pde_function) branch
+    @load @sprintf("trunk_epochs_%i_%s.bson",n_epoch,pde_function) trunk
+    @load @sprintf("train_ic_data_%i_%s.bson",number_train_functions,pde_function) train_ic
+    @load @sprintf("train_loc_data_%i_%s.bson",number_train_functions,pde_function) train_loc
+    @load @sprintf("train_target_data_%i_%s.bson",number_train_functions,pde_function) train_sol
+    @load @sprintf("test_ic_data_%i_%s.bson",number_test_functions,pde_function) test_ic
+    @load @sprintf("test_loc_data_%i_%s.bson",number_test_functions,pde_function) test_loc
+    @load @sprintf("test_target_data_%i_%s.bson",number_test_functions,pde_function) test_sol
+    @load @sprintf("u_sol_test_functions_%i_%s.bson",number_test_functions,pde_function) u_test
+    return branch, trunk, train_ic, train_loc, train_sol, test_ic, test_loc, test_sol, u_test
 end
+
+"""
+    nfan(n_out, n_in=1) -> Tuple
+    nfan(dims...)
+    nfan(dims::Tuple)
+
+DIRECT FROM THE OLD JULIA FLUX UTILITIES LIBRARY
+
+For a layer characterized by dimensions `dims`, return a tuple `(fan_in, fan_out)`, where `fan_in`
+is the number of input neurons connected to an output one, and `fan_out` is the number of output neurons
+connected to an input one.
+This function is mainly used by weight initializers, e.g., [`kaiming_normal`](@ref Flux.kaiming_normal).
+# Examples
+```jldoctest
+julia> layer = Dense(10, 20)
+Dense(10, 20)
+julia> Flux.nfan(size(layer.W))
+(10, 20)
+julia> layer = Conv((3, 3), 2=>10)
+Conv((3, 3), 2=>10)
+julia> Flux.nfan(size(layer.weight))
+(18, 90)
+```
+"""
+nfan() = 1, 1 # fan_in, fan_out
+nfan(n) = 1, n # A vector is treated as a n×1 matrix
+nfan(n_out, n_in) = n_in, n_out # In case of Dense kernels: arranged as matrices
+nfan(dims::Tuple) = nfan(dims...)
+nfan(dims...) = prod(dims[1:end-2]) .* (dims[end-1], dims[end]) # In case of convolution kernels
+
+ofeltype(x, y) = convert(float(eltype(x)), y)
+epseltype(x) = eps(float(eltype(x)))
+
+"""
+    kaiming_uniform([rng=GLOBAL_RNG], dims...; gain = √2)
+Return an `Array` of size `dims` containing random variables taken from a uniform distribution in the
+interval `[-x, x]`, where `x = gain * sqrt(3/fan_in)`.
+
+DIRECT FROM THE OLD JULIA FLUX UTILITIES LIBRARY
+
+This method is described in [1] and also known as He initialization.
+# Examples
+```jldoctest; setup = :(using Random; Random.seed!(0))
+julia> Flux.kaiming_uniform(3, 2)
+3×2 Array{Float32,2}:
+  0.950413   1.27439
+  1.4244    -1.28851
+ -0.907795   0.0909376
+```
+# See also
+* kaiming initialization using normal distribution: [`kaiming_normal`](@ref Flux.kaiming_normal)
+* glorot initialization using normal distribution: [`glorot_normal`](@ref Flux.glorot_normal)
+* glorot initialization using uniform distribution: [`glorot_uniform`](@ref Flux.glorot_uniform)
+* calculation of `fan_in` and `fan_out`: [`nfan`](@ref Flux.nfan)
+# References
+[1] He, Kaiming, et al. "Delving deep into rectifiers: Surpassing human-level performance on imagenet classification." _Proceedings of the IEEE international conference on computer vision_. 2015.
+"""
+function kaiming_uniform(rng::AbstractRNG, dims...; gain = √2)
+  bound = Float32(√3 * gain / sqrt(first(nfan(dims...)))) # fan_in
+  return (rand(rng, Float32, dims...) .- 0.5f0) .* 2bound
+end
+
+kaiming_uniform(dims...; kwargs...) = kaiming_uniform(Random.GLOBAL_RNG, dims...; kwargs...)
+kaiming_uniform(rng::AbstractRNG; kwargs...) = (dims...; kwargs...) -> kaiming_uniform(rng, dims...; kwargs...)
+
+"""
+    glorot_uniform([rng=GLOBAL_RNG], dims...)
+Return an `Array` of size `dims` containing random variables taken from a uniform
+distribution in the interval ``[-x, x]``, where `x = sqrt(6 / (fan_in + fan_out))`.
+This method is described in [1] and also known as Xavier initialization.
+
+DIRECT FROM THE OLD JULIA FLUX UTILITIES LIBRARY
+
+# Examples
+```jldoctest; setup = :(using Random; Random.seed!(0))
+julia> Flux.glorot_uniform(2, 3)
+2×3 Array{Float32,2}:
+ 0.601094  -0.57414   -0.814925
+ 0.900868   0.805994   0.057514
+```
+# See also
+* glorot initialization using normal distribution: [`glorot_normal`](@ref Flux.glorot_normal)
+* kaiming initialization using normal distribution: [`kaiming_normal`](@ref Flux.kaiming_normal)
+* kaiming initialization using uniform distribution: [`kaiming_uniform`](@ref Flux.kaiming_uniform)
+* calculation of `fan_in` and `fan_out`: [`nfan`](@ref Flux.nfan)
+# References
+[1] Glorot, Xavier, and Yoshua Bengio. "Understanding the difficulty of training deep feedforward neural networks." _Proceedings of the thirteenth international conference on artificial intelligence and statistics_. 2010.
+"""
+glorot_uniform(rng::AbstractRNG, dims...) = (rand(rng, Float32, dims...) .- 0.5f0) .* sqrt(24.0f0 / sum(nfan(dims...)))
+glorot_uniform(dims...) = glorot_uniform(Random.GLOBAL_RNG, dims...)
+glorot_uniform(rng::AbstractRNG) = (dims...) -> glorot_uniform(rng, dims...)

@@ -90,3 +90,30 @@ function reduced_initial_condition_full(L1,L2,N,x_locations,initial_condition)
     ic_interpolate = [ic_interpolate_fit(i) for i in x_interpolate];
     return x_interpolate, ic_interpolate
 end
+
+"""
+    mse_error(target,prediction)
+
+"""
+function mse_error(target,prediction)
+    return (1/size(target[:],1))*sum((prediction[:].-target[:]).^2,);
+end
+
+"""
+    trapz(x_range,integrand)
+
+Assumes constant step size...
+
+"""
+function trapz(x_range,integrand)
+    x1 = x_range[2]-x_range[1];
+    x2 = x_range[end]-x_range[end-1];
+    if x1 != x2
+        return nothing
+    end
+    int = 0;
+    for i = 1:length(x_range)-1
+        int += (x_range[i+1] - x_range[i])*(integrand[i] + integrand[i+1]);
+    end
+    return (1/2)*int
+end
