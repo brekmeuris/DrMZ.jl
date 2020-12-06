@@ -145,6 +145,7 @@ function save_basis(basis,N,n_epoch,pde_function)
 end
 
 """
+    DEPRECATE?
 
 """
 function spectral_truncation_error(basis,N,fnc)
@@ -158,6 +159,7 @@ function spectral_truncation_error(basis,N,fnc)
 end
 
 """
+    DEPRECATE?
 
 """
 function spectral_redefined_error(branch,trunk,L1,L2,x_locations,initial_condition,N;sorted="yes")

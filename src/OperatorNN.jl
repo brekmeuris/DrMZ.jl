@@ -277,7 +277,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
     opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
     opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
 
-    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);
+    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);#,shuffle = true);
     test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
     return train_data, test_data, u_train, u_test, x, t # THIS X WILL NEED TO CHANGE ONCE WE EXPORT THE FULL X DOMAIN...
 end

@@ -42,7 +42,7 @@ using Random: randperm, AbstractRNG
 using Random
 using ColorSchemes # Cut this one down...
 using DifferentialEquations
-using Interpolations: LinearInterpolation
+using Interpolations#: LinearInterpolation, interpolate
 using BSON: @save
 using BSON: @load
 using Printf

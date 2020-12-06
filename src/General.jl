@@ -53,7 +53,8 @@ end
 
 """
 function solution_interpolation(t_span_original,x_locations_original,t_span_interpolate,x_locations_interpolate,solution)
-    solution_interpolate_fit = LinearInterpolation((t_span_original,x_locations_original), solution);
+    # solution_interpolate_fit = LinearInterpolation((t_span_original,x_locations_original), solution);
+    solution_interpolate_fit = interpolate((t_span_original,x_locations_original),solution,Gridded(Linear()));
     solution_interpolate = zeros(size(t_span_interpolate,1),size(x_locations_interpolate,1));
     for i in 1:size(t_span_interpolate,1)
         for j in 1:size(x_locations_interpolate,1)
