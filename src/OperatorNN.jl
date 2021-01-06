@@ -106,6 +106,23 @@ function build_trunk_model_reduced(input_size,neurons;activation=relu)#,initiali
 end
 
 """
+    function build_trunk_model_layer_spec(input_size,neurons_2,neurons_3;activation=relu)
+
+Builds the trunk FFNN with 3 layers for a given input size and number of neurons
+
+input: input vector size, number of neurons
+
+output: trunk (Flux dense layer)
+
+"""
+function build_trunk_model_layer_spec(input_size,neurons,neurons_2,neurons_3;activation=relu)#,initialization=kaiming_uniform)
+    return Chain(Dense(input_size,neurons,activation),#;initW = kaiming_uniform, initb = zeros),
+        # Dense(neurons,neurons,activation),
+        Dense(neurons,neurons_2,activation),#;initW = kaiming_uniform, initb = zeros),
+        Dense(neurons_2,neurons_3,activation))|>f64; # Pipe it to be Float64
+end
+
+"""
     train_model(branch,trunk,n_epoch,train_data;learning_rate=0.00001)
 
 Trains the operator neural network using the mean squared error and ADAM optimization
@@ -424,7 +441,24 @@ function load_data(n_epoch,number_train_functions,number_test_functions,pde_func
     @load @sprintf("test_loc_data_%i_%s.bson",number_test_functions,pde_function) test_loc
     @load @sprintf("test_target_data_%i_%s.bson",number_test_functions,pde_function) test_sol
     @load @sprintf("u_sol_test_functions_%i_%s.bson",number_test_functions,pde_function) u_test
-    return branch, trunk, train_ic, train_loc, train_sol, test_ic, test_loc, test_sol, u_test
+    @load @sprintf("u_sol_train_functions_%i_%s.bson",number_train_functions,pde_function) u_train
+    return branch, trunk, train_ic, train_loc, train_sol, test_ic, test_loc, test_sol, u_test, u_train
+end
+
+"""
+    load_data_train_test(n_epoch,number_train_functions,number_test_functions)
+
+FINISH!!!
+
+"""
+function load_data_train_test(n_epoch,number_train_functions,number_test_functions,pde_function)
+    @load @sprintf("train_ic_data_%i_%s.bson",number_train_functions,pde_function) train_ic
+    @load @sprintf("train_loc_data_%i_%s.bson",number_train_functions,pde_function) train_loc
+    @load @sprintf("train_target_data_%i_%s.bson",number_train_functions,pde_function) train_sol
+    @load @sprintf("test_ic_data_%i_%s.bson",number_test_functions,pde_function) test_ic
+    @load @sprintf("test_loc_data_%i_%s.bson",number_test_functions,pde_function) test_loc
+    @load @sprintf("test_target_data_%i_%s.bson",number_test_functions,pde_function) test_sol
+    return train_ic, train_loc, train_sol, test_ic, test_loc, test_sol
 end
 
 """

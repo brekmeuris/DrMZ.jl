@@ -2,10 +2,10 @@
     function basis_OpNN(branch,trunk,initial_condition,x_locations)
 
 """
-function basis_OpNN(branch,trunk,initial_condition,x_locations,n)
-    basis = zeros(size(x_locations,1)); # make size of ic...
-    for i in 1:size(x_locations,1);
-        basis[i] = trunk(vcat(0,x_locations[i]))[n]'*branch(initial_condition)[n];
+function basis_OpNN(branch,trunk,x_locations,n)
+    basis = zeros(size(x_locations,1));
+    for i in 1:size(x_locations,1); # This needs to be output dimension of trunk layer...
+        basis[i] = trunk(vcat(0,x_locations[i]))[n];
     end
     return basis
 end
@@ -43,8 +43,9 @@ end
 function build_basis(branch,trunk,initial_condition,x_locations)
 
     basis = zeros(length(x_locations),size(initial_condition,1));
-    for i in 1:size(initial_condition,1)
-        basis[:,i] = basis_OpNN(branch,trunk,initial_condition,x_locations,i)
+    # for i in 1:size(initial_condition,1)
+    for i in 1:size(x_locations,1)
+        basis[:,i] = basis_OpNN(branch,trunk,x_locations,i)
     end
 
     F = qr(basis);
