@@ -4,7 +4,7 @@
 """
 function basis_OpNN(branch,trunk,x_locations,n)
     basis = zeros(size(x_locations,1));
-    for i in 1:size(x_locations,1); # This needs to be output dimension of trunk layer...
+    for i in 1:size(x_locations,1);
         basis[i] = trunk(vcat(0,x_locations[i]))[n];
     end
     return basis
@@ -43,8 +43,8 @@ end
 function build_basis(branch,trunk,initial_condition,x_locations)
 
     basis = zeros(length(x_locations),size(initial_condition,1));
-    # for i in 1:size(initial_condition,1)
-    for i in 1:size(x_locations,1)
+    # for i in 1:size(x_locations,1) # This needs to be length of trunk output...
+    for i in 1:(Flux.outdims(trunk[end],initial_condition)[1])
         basis[:,i] = basis_OpNN(branch,trunk,x_locations,i)
     end
 
@@ -125,7 +125,6 @@ function generate_opnn_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde
     D2basis = fourier_diff(Dbasis,N,dL);
     D2matrix = spectral_matrix(basis,D2basis);
     p = [Dmatrix,D2matrix];
-    # prob = ODEProblem(opnn_advection_pde!,u0,t_span,p);
     prob = ODEProblem(pde_function,u0,t_span,p);
     sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt)#,RK4(),reltol=1e-10,abstol=1e-10) # ODE45 like solver, saveat = 0.5
     u_sol = zeros(size(sol.t,1),size(basis,1));
@@ -143,44 +142,4 @@ FINISH!!!
 """
 function save_basis(basis,N,n_epoch,pde_function)
     @save @sprintf("basis_%i_N_epochs_%i_%s.bson",N,n_epoch,pde_function) basis
-end
-
-"""
-    DEPRECATE?
-
-"""
-function spectral_truncation_error(basis,N,fnc)
-    error = zeros(N)
-    for i in 2:2:N
-        coeffs = spectral_coefficients(basis[:,1:i],fnc);
-        approx = spectral_approximation(basis[:,1:i],coeffs);
-        error[i] = norm(fnc .- approx);
-    end
-    return error
-end
-
-"""
-    DEPRECATE?
-
-"""
-function spectral_redefined_error(branch,trunk,L1,L2,x_locations,initial_condition,N;sorted="yes")
-    error = zeros(N)
-    for i in 2:2:N
-        x_interpolate, ic_interpolate = reduced_initial_condition(L1,L2,N,x_locations,initial_condition);
-        orthonormal_sorted_basis, orthonormal_basis, sorted_basis, basis = build_basis(branch,trunk,initial_condition,x_interpolate);
-        if sorted == "yes"
-            coeffs = spectral_coefficients(orthonormal_sorted_basis[:,1:i],ic_interpolate);
-            approx = spectral_approximation(orthonormal_sorted_basis[:,1:i],coeffs);
-            error[i] = norm(ic_interpolate .- approx);
-        elseif sorted == "fourier"
-            coeffs = fft(ic_interpolate);
-            approx = real.(ifft(coeffs));
-            error[i] = norm(ic_interpolate .- approx);
-        else
-            coeffs = spectral_coefficients(orthonormal_basis[:,1:i],ic_interpolate);
-            approx = spectral_approximation(orthonormal_basis[:,1:i],coeffs);
-            error[i] = norm(ic_interpolate .- approx);
-        end
-    end
-    return error
 end

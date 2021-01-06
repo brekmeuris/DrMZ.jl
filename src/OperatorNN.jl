@@ -10,7 +10,6 @@ output: u(x,t)
 """
 function predict(branch,trunk,initial_condition,x_locations,t_values)
     u = zeros(size(t_values,1),size(x_locations,1));
-    # bkt = transpose(branch(initial_condition));
     bk = branch(initial_condition)';
     for i in 1:size(t_values,1)
         for j in 1:size(x_locations,1)
@@ -33,14 +32,30 @@ output: error
 function loss_all(branch,trunk,initial_condition,solution_location,target_value)
     yhat = zeros(1,size(target_value,2));
     for i in 1:size(target_value,2)
-        # yhat[i] = transpose(branch(initial_condition[:,i]))*trunk(solution_location[:,i]);
         yhat[i] = branch(initial_condition[:,i])'*trunk(solution_location[:,i]);
     end
     return (1/size(target_value,2))*sum((yhat.-target_value).^2,);
 end
 
 """
+    function build_dense_model(number_layers,neurons,activations)
+
+Builds a FFNN of Flux dense layers
+
+input: number of layers, array consisting of tuples (layer input size, layer output size), and array of activation functions
+
+output: Flux model consisting of chained dense layers piped to output Float64
+
+"""
+function build_dense_model(number_layers,neurons,activations)
+    layers = [Dense(neurons[i][1],neurons[i][2],activations[i]) for i in 1:number_layers];
+    return Chain(layers...)|>f64
+end
+
+"""
     function build_branch_model(input_size,neurons;activation=relu)
+
+        DEPRECATE!!!
 
 Builds the branch FFNN with 3 layers for a given input size and number of neurons
 
@@ -58,6 +73,8 @@ end
 """
     function build_branch_model_reduced(input_size,neurons;activation=relu)
 
+        DEPRECATE!!!
+
 Builds the branch FFNN with 2 layers for a given input size and number of neurons
 
 input: input vector size, number of neurons
@@ -74,11 +91,13 @@ end
 """
     function build_trunk_model(input_size,neurons;activation=relu)
 
+        DEPRECATE!!!
+
 Builds the trunk FFNN with 4 layers for a given input size and number of neurons
 
 input: input vector size, number of neurons
 
-output: trunk (Flux dense layer)
+output: trunk (chain of Flux dense layers)
 
 """
 function build_trunk_model(input_size,neurons,activation=relu)
@@ -90,6 +109,8 @@ end
 
 """
     function build_trunk_model_reduced(input_size,neurons;activation=relu)
+
+        DEPRECATE!!!
 
 Builds the trunk FFNN with 3 layers for a given input size and number of neurons
 
@@ -107,6 +128,8 @@ end
 
 """
     function build_trunk_model_layer_spec(input_size,neurons_2,neurons_3;activation=relu)
+
+        DEPRECATE!!!
 
 Builds the trunk FFNN with 3 layers for a given input size and number of neurons
 
@@ -133,7 +156,6 @@ output: trained branch, trained trunk, MSE loss for each epoch
 
 """
 function train_model(branch,trunk,n_epoch,train_data;learning_rate=1e-5)
-    # loss(x,y,z) = Flux.mse(transpose(branch(x))*trunk(y),z);
     loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)
     par = Flux.params(branch,trunk);
     opt = ADAM(learning_rate);
