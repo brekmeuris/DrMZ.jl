@@ -21,15 +21,15 @@ function orthonormal_check(basis;tol = 1e-15)
             if i == j
                 if abs(norm(basis[:,i]) - 1) > tol
                     println("Not orthonormal to $tol... $i")
-                    return nothing
-                    break
+                    # return nothing
+                    # break
                 end
             elseif i != j
                 # if abs(orthonormal_basis[:,i]'*conj(orthonormal_basis[:,j])) > tol# || (efuncs_orthonorm[:,i]'*conj(efuncs_orthonorm[:,j]) < eps())
                 if abs(basis[:,j]'*basis[:,i]) > tol# || (efuncs_orthonorm[:,i]'*conj(efuncs_orthonorm[:,j]) < eps())
                     println("Not orthogonal to $tol... $i vs $j")
-                    return nothing
-                    break
+                    # return nothing
+                    # break
                 end
             end
         end
@@ -40,11 +40,11 @@ end
     build_basis(branch,trunk,intial_condition,x_locations)
 
 """
-function build_basis(branch,trunk,initial_condition,x_locations)
+function build_basis(branch,trunk,x_locations)
 
-    basis = zeros(length(x_locations),size(initial_condition,1));
-    # for i in 1:size(x_locations,1) # This needs to be length of trunk output...
-    for i in 1:(Flux.outdims(trunk[end],initial_condition)[1])
+    basis = zeros(size(x_locations,1),size(x_locations,1));
+    for i in 1:size(x_locations,1) # This needs to be length of trunk output...
+    # for i in 1:(Flux.outdims(trunk[end],initial_condition)[1])
         basis[:,i] = basis_OpNN(branch,trunk,x_locations,i)
     end
 
@@ -69,6 +69,7 @@ function build_basis(branch,trunk,initial_condition,x_locations)
     orthonormal_check(orthonormal_sorted_basis);
 
     return orthonormal_sorted_basis, orthonormal_basis, sorted_basis, basis
+    # return orthonormal_basis, basis
 end
 
 """
@@ -76,18 +77,29 @@ end
 
 """
 function spectral_coefficients(basis,fnc)
-    coefficients = zeros(size(basis,2));
+    coefficients = zeros(typeof(basis[1]),size(basis,2));
     for i = 1:size(basis,2)
-        # coeffs[i] = fnc'*conj(eigen[:,i]);
-        # coeffs[i] = dot(fnc,eigen[:,i]);
-        # coeffs[i] = dot(fnc,eigen[:,i])/dot(eigen[:,i],eigen[:,i]); #fix this... Conjugate
-        # coefficients[i] = (fnc'*conj(basis[:,i]))/(basis[:,i]'*conj(basis[:,i])); #Could this hurt stability?
         if norm(basis[:,i]) > eps()
             coefficients[i] = (basis[:,i]'*fnc)/(basis[:,i]'*basis[:,i]); #Could this hurt stability?
         else
             coefficients[i] = 0.0;
         end
-        # coeffs[i] = (fnc'*conj(eigen[:,i]))/norm(eigen[:,i]); #Could this hurt stability?
+    end
+    return coefficients
+end
+
+"""
+    spectral_coefficients_integral(basis,fnc)
+
+"""
+function spectral_coefficients_integral(basis,fnc,x_locations)
+    coefficients = zeros(typeof(basis[1]),size(basis,2));
+    for i = 1:size(basis,2)
+        if norm(basis[:,i]) > eps()
+            coefficients[i] = simpson(x_locations,fnc.*conj(basis[:,i]))/simpson(x_locations,basis[:,i].*conj(basis[:,i]));
+        else
+            coefficients[i] = 0.0;
+        end
     end
     return coefficients
 end
@@ -97,7 +109,7 @@ end
 
 """
 function spectral_approximation(basis,coefficients)
-    approximation = zeros(size(basis,1));
+    approximation = zeros(typeof(basis[1]),size(basis,1));
     for i = 1:size(basis,2)
         approximation += coefficients[i]*basis[:,i]; # Do we need to scale this? 1/dL???
     end
@@ -117,7 +129,7 @@ end
     generate_opnn_solution(L1,L2,t_span,N,basis,initial_condition)
 
 """
-function generate_opnn_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-6,atol=1e-8)
+function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
     u0 = spectral_coefficients(basis,initial_condition);
     dL = abs(L2-L1);
     Dbasis = fourier_diff(basis,N,dL);

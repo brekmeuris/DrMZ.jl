@@ -150,7 +150,7 @@ end
 """
 
 """
-function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-6,atol=1e-8)
+function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
     # Transform random initial condition to Fourier domain
     uhat0 = fft(initial_condition);
     dL = abs(L2-L1);

@@ -13,7 +13,7 @@ Add this to your startup file also, "~/.julia/config/startup.jl"
 module DrMZ
 
 # Export the functions for General.jl
-export error_test_sse, error_test_rel, periodic_fill_domain, periodic_fill_solution, solution_interpolation, reduced_initial_condition, mse_error, trapz
+export error_test_sse, error_test_rel, periodic_fill_domain, periodic_fill_solution, solution_interpolation, reduced_initial_condition, mse_error, trapz, norm_rel_error, solution_spatial_sampling, fft_norm, ifft_norm, trapz1, simpson13, simpson38, simpson
 export reduced_initial_condition_full
 
 # Export the functions for OperatorNN.jl
@@ -25,7 +25,7 @@ export advection_pde!, fourier_diff, fourier_two_diff, cheby_grid, cheby_diff_ma
 export opnn_advection_pde_full!, opnn_advection_diffusion_pde_full!
 
 # Export the functions for DBasis.jl
-export basis_OpNN, orthonormal_check, build_basis, spectral_coefficients, spectral_approximation, spectral_matrix, generate_opnn_basis_solution, save_basis, spectral_truncation_error, spectral_redefined_error
+export basis_OpNN, orthonormal_check, build_basis, spectral_coefficients, spectral_coefficients_integral, spectral_approximation, spectral_matrix, generate_basis_solution, save_basis, spectral_truncation_error, spectral_redefined_error
 
 # Export the functions for Results.jl
 # export generate_opnn_results

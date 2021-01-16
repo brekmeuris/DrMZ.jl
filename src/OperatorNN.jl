@@ -464,16 +464,16 @@ function load_data(n_epoch,number_train_functions,number_test_functions,pde_func
     @load @sprintf("test_target_data_%i_%s.bson",number_test_functions,pde_function) test_sol
     @load @sprintf("u_sol_test_functions_%i_%s.bson",number_test_functions,pde_function) u_test
     @load @sprintf("u_sol_train_functions_%i_%s.bson",number_train_functions,pde_function) u_train
-    return branch, trunk, train_ic, train_loc, train_sol, test_ic, test_loc, test_sol, u_test, u_train
+    return branch, trunk, train_ic, train_loc, train_sol, test_ic, test_loc, test_sol, u_train, u_test
 end
 
 """
-    load_data_train_test(n_epoch,number_train_functions,number_test_functions)
+    load_data_train_test(number_train_functions,number_test_functions)
 
 FINISH!!!
 
 """
-function load_data_train_test(n_epoch,number_train_functions,number_test_functions,pde_function)
+function load_data_train_test(number_train_functions,number_test_functions,pde_function)
     @load @sprintf("train_ic_data_%i_%s.bson",number_train_functions,pde_function) train_ic
     @load @sprintf("train_loc_data_%i_%s.bson",number_train_functions,pde_function) train_loc
     @load @sprintf("train_target_data_%i_%s.bson",number_train_functions,pde_function) train_sol
