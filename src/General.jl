@@ -28,7 +28,7 @@ function error_test_sse(target,prediction)
     error_test_se = zeros(size(target,1),size(target,2));
     for j in 1:size(target,1)
         for i in 1:size(target,2)
-            error_test_se[j,i] = (prediction[j,i] - target[j,i]).^2;
+            error_test_se[j,i] = (prediction[j,i] - target[j,i])^2;
         end
     end
     return error_test_se
@@ -60,7 +60,9 @@ function solution_interpolation(t_span_original,x_locations_original,t_span_inte
     # solution_interpolate_fit = CubicSplineInterpolation((t_span_original,x_locations_original),solution[i,:]);
     solution_interpolate = zeros(size(t_span_interpolate,1),size(x_locations_interpolate,1));
     for i in 1:size(t_span_interpolate,1)
-        # solution_interpolate_fit = CubicSplineInterpolation(x_locations_original,solution[i,:]);
+        # solution_interpolate_fit = CubicSplineInterpolation((x_locations_original,),solution[i,:]);
+        # solution_interpolate_fit = interpolate((x_locations_original,),solution[i,:],BSpline(Linear()));
+
         for j in 1:size(x_locations_interpolate,1)
             solution_interpolate[i,j] = solution_interpolate_fit(t_span_interpolate[i],x_locations_interpolate[j]);
             # solution_interpolate[i,j] = solution_interpolate_fit(x_locations_interpolate[j]);
@@ -119,7 +121,14 @@ end
 
 """
 function mse_error(target,prediction)
-    return (1/size(target[:],1))*sum((prediction[:].-target[:]).^2,);
+    error_test_mse = 0.0;
+    for j in 1:size(target,1)
+        for i in 1:size(target,2)
+            error_test_mse += (prediction[j,i] - target[j,i])^2;
+        end
+    end
+    # return (1/size(target[:],1))*sum((prediction[:].-target[:]).^2);
+    return (1/(size(target,1)*size(target,2)))*error_test_mse
 end
 
 """
@@ -133,7 +142,7 @@ function norm_rel_error(target,prediction)
     end
     error = zeros(size(target,1))
     for i in 1:size(target,1)
-        error[i] = norm(prediction[i,:]-target[i,:])^2/norm(target[i,:])^2
+        error[i] = norm(prediction[i,:].-target[i,:])/norm(target[i,:]);
     end
     return error
 end
@@ -192,7 +201,7 @@ function simpson(x_range,integrand)
     h = x_range[2]-x_range[1];
     k = 1;
     int = 0.0;
-    for i = 2:length(x_range)-1
+    for i in 2:length(x_range)-1
         hf = x_range[i+1]-x_range[i];
         if abs(h-hf) < 0.000001
             if k == 3
@@ -252,4 +261,45 @@ end
 function ifft_norm(solution)
     N = size(solution,1);
     return N*ifft(solution)
+end
+
+"""
+    average_error(error)
+
+"""
+function average_error(domain,error)
+    return 1/(domain[end]-domain[1])*simpson(domain,error)
+    # return 1/(domain[end]-domain[1])*trapz(domain,error)
+end
+
+function gram_schmidt(A;sorted="false",tol = 1e-8)
+
+    if sorted == "true"
+        norm_basis = [norm(basis[:,i],2) for i in 1:size(basis,2)];
+        norm_sort = reverse(sortperm(norm_basis));
+        As = zeros(size(A,1),size(A,2));
+        for i in 1:size(A,2)
+            indsort = norm_sort[i];
+            As[:,i] = A[:,indsort];
+        end
+    else
+        As = deepcopy(A);
+    end
+
+    q = zeros(size(As));
+    r = zeros(size(As,2),size(As,2));
+    for i = 1:size(As,2)
+        v = As[:,i];
+        for j = 1:i-1
+            r[j,i] = q[:,j]'*As[:,i];
+            v -= r[j,i]*q[:,j]
+        end
+        if norm(v) < tol
+            println("Vectors are linearly dependent.")
+            return q
+        end
+        r[i,i] = norm(v);
+        q[:,i] = v/r[i,i];
+    end
+    return q
 end

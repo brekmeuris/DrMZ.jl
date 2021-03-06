@@ -34,7 +34,7 @@ function loss_all(branch,trunk,initial_condition,solution_location,target_value)
     for i in 1:size(target_value,2)
         yhat[i] = branch(initial_condition[:,i])'*trunk(solution_location[:,i]);
     end
-    return (1/size(target_value,2))*sum((yhat.-target_value).^2,);
+    return (1/size(target_value,2))*sum((yhat.-target_value).^2);
 end
 
 """
@@ -281,7 +281,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
 
         # Solve the system of ODEs in Fourier domain
         prob = ODEProblem(pde_function,uhat0,t_span,p);
-        sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)
+        sol = solve(prob,DP5(),reltol=1e-10,abstol=1e-14,saveat = dt)
 
         for j in 1:size(sol.t,1) # Reshape output and plot
             u_train[j,:,i] = real.(ifft(sol.u[j])); # u[t,x,IC]
@@ -299,7 +299,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
 
         # Solve the system of ODEs in Fourier domain
         prob = ODEProblem(pde_function,uhat0,t_span,p);
-        sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)
+        sol = solve(prob,DP5(),reltol=1e-10,abstol=1e-14,saveat = dt)
 
         for j in 1:size(sol.t,1) # Reshape output and plot
             u_test[j,:,i] = real.(ifft(sol.u[j])); # u[t,x,IC]
@@ -322,95 +322,6 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
 end
 
 """
-    generate_periodic_train_test_full(L1,L2,t_span,number_sensors,number_test_functions,number_train_functions,number_solution _points;length_scale=0.5,batch=number_solution_points,dt=1e-3)
-
-FINISH!!! THIS SHOULD ALSO PASS IN RHS AND ANY PARAMETERS NEEDED FOR ODE SOLVE
-CREATE ALTERNATIVE FUNCTION THAT IS GENERATE_STANDARD_TRAIN_TEST FOR FUNCTIONS OVER FULL DOMAIN
-
-EDIT THIS SO THAT WHAT IS OUTPUT IS OVER FULL DOMAIN.
-
-"""
-function generate_periodic_train_test_full(L1,L2,t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function;length_scale=0.5,batch=number_solution_points,dt=1e-3)
-
-    x_full = range(L1,stop = L2,length = number_sensors); # Full domain
-    random_ics = generate_periodic_functions(x_full,Int(number_train_functions + number_test_functions),length_scale)
-    dL = abs(L2-L1);
-
-    # Set up x domain and wave vector for spectral solution
-    j = reduce(vcat,[0:1:(number_sensors-1)-1]);
-    x = (dL.*j)./(number_sensors-1);
-    k = reduce(vcat,(2*π/dL)*[0:(number_sensors-1)/2-1 -(number_sensors-1)/2:-1]);
-
-    # Generate the dataset using spectral method
-    interp_train_sample = zeros(size(x,1),number_train_functions);
-    interp_test_sample = zeros(size(x,1),number_test_functions);
-    t_length = t_span[2]/dt + 1;
-    t = range(t_span[1],stop = t_span[2], length = Int(t_length));
-    u_train = zeros(Int(t_length),number_sensors,number_train_functions);
-    u_test = zeros(Int(t_length),number_sensors,number_test_functions);
-    train_ic = zeros(number_sensors,number_solution_points,number_train_functions);
-    train_loc = zeros(2,number_solution_points,number_train_functions);
-    train_target = zeros(1,number_solution_points,number_train_functions);
-    test_ic = zeros(number_sensors,number_solution_points,number_test_functions);
-    test_loc = zeros(2,number_solution_points,number_test_functions);
-    test_target = zeros(1,number_solution_points,number_test_functions);
-
-    p = [(number_sensors-1),dL];
-
-    @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
-
-        interp_train_sample[:,i] = random_ics[1:end-1,i];
-
-        # Transform random initial condition to Fourier domain
-        uhat0 = fft(interp_train_sample[:,i]);
-
-        # Solve the system of ODEs in Fourier domain
-        # prob = ODEProblem(advection_pde!,uhat0,t_span,p);
-        prob = ODEProblem(pde_function,uhat0,t_span,p);
-        sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)
-
-        for j in 1:size(sol.t,1) # Reshape output and plot
-            u_train[j,1:(number_sensors-1),i] = real.(ifft(sol.u[j])); # u[t,x,IC]
-            u_train[j,number_sensors,i] = u_train[j,1,i];
-        end
-
-        train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x_full,t,u_train[:,:,i],random_ics[:,i],number_solution_points);
-    end
-
-    @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
-
-        interp_test_sample[:,i] = random_ics[1:end-1,Int(number_train_functions+i)];
-
-        # Transform random initial condition to Fourier domain
-        uhat0 = fft(interp_test_sample[:,i]); # Transform random initial condition to Fourier domain
-
-        # Solve the system of ODEs in Fourier domain
-        # prob = ODEProblem(advection_pde!,uhat0,t_span,p);
-        prob = ODEProblem(pde_function,uhat0,t_span,p);
-        sol = solve(prob,DP5(),reltol=1e-6,abstol=1e-8,saveat = dt)
-
-        for j in 1:size(sol.t,1) # Reshape output and plot
-            u_test[j,1:(number_sensors-1),i] = real.(ifft(sol.u[j])); # u[t,x,IC]
-            u_test[j,number_sensors,i] = u_test[j,1,i];
-        end
-
-        test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x_full,t,u_test[:,:,i],random_ics[:,Int(number_train_functions+i)],number_solution_points);
-    end
-
-    # Combine data sets from each function
-    opnn_train_ic = reshape(hcat(train_ic...),(number_sensors,Int(number_solution_points*number_train_functions)));
-    opnn_train_loc = reshape(hcat(train_loc...),(2,Int(number_solution_points*number_train_functions)));
-    opnn_train_target = reshape(hcat(train_target...),(1,Int(number_solution_points*number_train_functions)));
-    opnn_test_ic = reshape(hcat(test_ic...),(number_sensors,Int(number_solution_points*number_test_functions)));
-    opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
-    opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
-
-    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize = batch);
-    test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize = batch);
-    return train_data, test_data, u_train, u_test, x_full, t # THIS X WILL NEED TO CHANGE ONCE WE EXPORT THE FULL X DOMAIN...
-end
-
-"""
     save_model(branch,trunk,n_epoch)
 
 FINISH!!!
@@ -419,6 +330,18 @@ FINISH!!!
 function save_model(branch,trunk,n_epoch,pde_function)
     @save @sprintf("branch_epochs_%i_%s.bson",n_epoch,pde_function) branch
     @save @sprintf("trunk_epochs_%i_%s.bson",n_epoch,pde_function) trunk
+end
+
+"""
+    load_model(branch,trunk,n_epoch)
+
+FINISH!!!
+
+"""
+function load_model(n_epoch,pde_function)
+    @load @sprintf("branch_epochs_%i_%s.bson",n_epoch,pde_function) branch
+    @load @sprintf("trunk_epochs_%i_%s.bson",n_epoch,pde_function) trunk
+    return branch, trunk
 end
 
 """
@@ -481,6 +404,18 @@ function load_data_train_test(number_train_functions,number_test_functions,pde_f
     @load @sprintf("test_loc_data_%i_%s.bson",number_test_functions,pde_function) test_loc
     @load @sprintf("test_target_data_%i_%s.bson",number_test_functions,pde_function) test_sol
     return train_ic, train_loc, train_sol, test_ic, test_loc, test_sol
+end
+
+"""
+    load_data_initial_conditions(number_train_functions,number_test_functions)
+
+FINISH!!!
+
+"""
+function load_data_initial_conditions(number_train_functions,number_test_functions,pde_function)
+    @load @sprintf("train_ic_data_%i_%s.bson",number_train_functions,pde_function) train_ic
+    @load @sprintf("test_ic_data_%i_%s.bson",number_test_functions,pde_function) test_ic
+    return train_ic, test_ic
 end
 
 """
@@ -573,3 +508,50 @@ julia> Flux.glorot_uniform(2, 3)
 glorot_uniform(rng::AbstractRNG, dims...) = (rand(rng, Float32, dims...) .- 0.5f0) .* sqrt(24.0f0 / sum(nfan(dims...)))
 glorot_uniform(dims...) = glorot_uniform(Random.GLOBAL_RNG, dims...)
 glorot_uniform(rng::AbstractRNG) = (dims...) -> glorot_uniform(rng, dims...)
+
+"""
+    train_model_MZ(branch,trunk,n_epoch,train_data,N;learning_rate=0.00001)
+
+Trains the operator neural network using the mean squared error and ADAM optimization
+
+input: branch, trunk, number of training epochs, training data
+
+output: trained branch, trained trunk, MSE loss for each epoch
+
+"""
+function train_model_MZ(branch,trunk,n_epoch,train_data;learning_rate=1e-5,lambda=1.0)
+    l1(x) = sum(abs.(x));
+    loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)+lambda*sum(l1, params(branch));#norm(branch(x),1);#+Flux.mse(sum(branch(x)[1:16])-sum(branch(x)[17:128]),0.0);
+    par = Flux.params(branch,trunk);
+    opt = ADAM(learning_rate);
+    loss_all_train = Array{Float64}(undef,n_epoch+1,1);
+    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
+    @showprogress 1 "Training the model..." for i in 1:n_epoch
+        Flux.train!(loss,par,train_data,opt);
+        loss_all_train[i+1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
+    end
+    return branch,trunk,loss_all_train
+end
+
+"""
+    train_model_MZ_coeffs(branch,trunk,n_epoch,train_data,N;learning_rate=0.00001)
+
+Trains the operator neural network using the mean squared error and ADAM optimization
+
+input: branch, trunk, number of training epochs, training data
+
+output: trained branch, trained trunk, MSE loss for each epoch
+
+"""
+function train_model_MZ_coefficients(branch,trunk,n_epoch,train_data,N;learning_rate=1e-5,lambda=1.0)
+    loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)+lambda*(norm(branch(x),1)-norm(branch(x)[1:N],1));
+    par = Flux.params(branch,trunk);
+    opt = ADAM(learning_rate);
+    loss_all_train = Array{Float64}(undef,n_epoch+1,1);
+    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
+    @showprogress 1 "Training the model..." for i in 1:n_epoch
+        Flux.train!(loss,par,train_data,opt);
+        loss_all_train[i+1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
+    end
+    return branch,trunk,loss_all_train
+end

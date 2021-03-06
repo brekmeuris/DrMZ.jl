@@ -1,8 +1,8 @@
 """
-    function basis_OpNN(branch,trunk,initial_condition,x_locations)
+    function basis_OpNN(trunk,x_locations)
 
 """
-function basis_OpNN(branch,trunk,x_locations,n)
+function basis_OpNN(trunk,x_locations,n)
     basis = zeros(size(x_locations,1));
     for i in 1:size(x_locations,1);
         basis[i] = trunk(vcat(0,x_locations[i]))[n];
@@ -37,15 +37,14 @@ function orthonormal_check(basis;tol = 1e-15)
 end
 
 """
-    build_basis(branch,trunk,intial_condition,x_locations)
+    build_basis(trunk,intial_condition,x_locations,opnn_output_width)
 
 """
-function build_basis(branch,trunk,x_locations)
+function build_basis(trunk,x_locations,opnn_output_width)
 
-    basis = zeros(size(x_locations,1),size(x_locations,1));
-    for i in 1:size(x_locations,1) # This needs to be length of trunk output...
-    # for i in 1:(Flux.outdims(trunk[end],initial_condition)[1])
-        basis[:,i] = basis_OpNN(branch,trunk,x_locations,i)
+    basis = zeros(size(x_locations,1),opnn_output_width);
+    for i in 1:opnn_output_width
+        basis[:,i] = basis_OpNN(trunk,x_locations,i)
     end
 
     F = qr(basis);
@@ -73,6 +72,53 @@ function build_basis(branch,trunk,x_locations)
 end
 
 """
+    build_basis_factors(trunk,intial_condition,x_locations,opnn_output_width)
+
+"""
+function build_basis_factors(trunk,x_locations,opnn_output_width;sorted="false",pivot_val=false)
+
+    basis = zeros(size(x_locations,1),opnn_output_width);
+    for i in 1:opnn_output_width
+        basis[:,i] = basis_OpNN(trunk,x_locations,i)
+    end
+
+    if sorted == "true"
+        norm_basis = [norm(basis[:,i],2) for i in 1:size(basis,2)];
+        norm_sort = reverse(sortperm(norm_basis));
+        sorted_basis = zeros(size(basis,1),size(basis,2));
+        for i in 1:size(basis,2)
+            indsort = norm_sort[i];
+            sorted_basis[:,i] = basis[:,indsort];
+        end
+    else
+        sorted_basis = deepcopy(basis);
+    end
+
+    # Test various factorizations
+    # QR factorization
+    Fqr = qr(sorted_basis,Val(pivot_val));
+    orthonormal_basis_qr = Fqr.Q*Matrix(I, size(sorted_basis,1), size(sorted_basis,1));
+    # orthonormal_basis_qr = Matrix(Fqr.Q);
+
+    # LQ factorization
+    Flq = lq(sorted_basis);
+    orthonormal_basis_lq = transpose(Flq.Q*Matrix(I,opnn_output_width,opnn_output_width));
+    # orthonormal_basis_lq = transpose(Matrix(Flq.Q));
+
+
+    # QR^T factorization
+    Fqrt = qr(transpose(sorted_basis),Val(pivot_val));
+    orthonormal_basis_qrt = Fqrt.Q*Matrix(I,opnn_output_width,opnn_output_width);
+
+    # Check for orthonormality
+    orthonormal_check(orthonormal_basis_qr);
+    orthonormal_check(orthonormal_basis_lq);
+    orthonormal_check(orthonormal_basis_qrt);
+
+    return sorted_basis, orthonormal_basis_qr, orthonormal_basis_lq, orthonormal_basis_qrt, Fqr, Flq, Fqrt
+end
+
+"""
     spectral_coefficients(basis,fnc)
 
 """
@@ -85,6 +131,7 @@ function spectral_coefficients(basis,fnc)
             coefficients[i] = 0.0;
         end
     end
+    # coefficients = basis\fnc;
     return coefficients
 end
 
@@ -113,6 +160,7 @@ function spectral_approximation(basis,coefficients)
     for i = 1:size(basis,2)
         approximation += coefficients[i]*basis[:,i]; # Do we need to scale this? 1/dL???
     end
+    # approximation = basis*coefficients;
     return approximation
 end
 
@@ -126,15 +174,15 @@ function spectral_matrix(basis,Dbasis)
 end
 
 """
-    generate_opnn_solution(L1,L2,t_span,N,basis,initial_condition)
+    generate_basis_solution(L1,L2,t_span,N,basis,initial_condition)
 
 """
 function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
     u0 = spectral_coefficients(basis,initial_condition);
     dL = abs(L2-L1);
-    Dbasis = fourier_diff(basis,N,dL);
+    Dbasis = fourier_diff(basis,N,dL);#;format="spectral");
     Dmatrix = spectral_matrix(basis,Dbasis);
-    D2basis = fourier_diff(Dbasis,N,dL);
+    D2basis = fourier_diff(Dbasis,N,dL);#;format="spectral");
     D2matrix = spectral_matrix(basis,D2basis);
     p = [Dmatrix,D2matrix];
     prob = ODEProblem(pde_function,u0,t_span,p);

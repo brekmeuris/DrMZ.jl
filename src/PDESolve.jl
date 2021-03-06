@@ -8,7 +8,7 @@ input: dû/dt, û, N, delta L, t_span
 output: dû/dt
 
 """
-function advection_pde!(duhat,uhat,p,t_span)
+function advection_pde!(duhat,uhat,p,t)
     N, dL = p;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
@@ -86,7 +86,7 @@ end
 #     duapprox = fourier_diff(uapprox,N,dL)
 #     du .= -spectral_coefficients(basis,duapprox)
 # end
-function opnn_advection_pde!(du,u,p,t_span)
+function opnn_advection_pde!(du,u,p,t)
     Dmatrix, D2matrix = p;
     du .= -Dmatrix*u;
 end
@@ -108,7 +108,7 @@ end
     advection_diffusion_pde!(duhat,uhat,p,t_span)
 
 """
-function advection_diffusion_pde!(duhat,uhat,p,t_span)
+function advection_diffusion_pde!(duhat,uhat,p,t)
     N, dL = p;
     D = 0.1; #0.015
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
@@ -120,7 +120,7 @@ end
     opnn_advection_diffusion_pde!(du,u,p,t_span)
 
 """
-function opnn_advection_diffusion_pde!(du,u,p,t_span)
+function opnn_advection_diffusion_pde!(du,u,p,t)
     Dmatrix, D2matrix = p;
     D = 0.1; #0.015
     # uapprox = spectral_approximation(basis,u);
@@ -152,7 +152,8 @@ end
 """
 function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
     # Transform random initial condition to Fourier domain
-    uhat0 = fft(initial_condition);
+    # uhat0 = fft(initial_condition);
+    uhat0 = fft_norm(initial_condition);
     dL = abs(L2-L1);
 
     # Generate Fourier Galerkin solution for N
@@ -165,7 +166,118 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
 
     u_sol = zeros(Int(t_length),N);
     for j in 1:size(sol.t,1) # Reshape output and plot
-        u_sol[j,:] = real.(ifft(sol.u[j])); # u[t,x,IC]
+        # u_sol[j,:] = real.(ifft(sol.u[j])); # u[t,x,IC]
+        u_sol[j,:] = real.(ifft_norm(sol.u[j])); # u[t,x,IC]
     end
     return u_sol
+end
+
+"""
+
+"""
+function generate_fourier_solution_stiff(L1,L2,tspan,N,initial_condition,pde_linear,pde_function_explicit;dt_fixed=1e-3,rtol=1e-10,atol=1e-14)
+    # Transform random initial condition to Fourier domain
+    # uhat0 = fft(initial_condition);
+    uhat0 = fft_norm(initial_condition);
+    dL = abs(L2-L1);
+
+    # Generate Fourier Galerkin solution for N
+    p = [N,dL];
+    t_length = tspan[2]/dt_fixed+1;
+
+    # Solve the system of ODEs in Fourier domain
+    prob = SplitODEProblem(pde_linear,pde_function_explicit,uhat0,tspan,p);
+    sol = solve(prob,ETDRK4(),reltol=rtol,abstol=atol,dt = dt_fixed,saveat = dt_fixed)
+
+    u_sol = zeros(Int(t_length),N);
+    for j in 1:size(sol.t,1) # Reshape output and plot
+        # u_sol[j,:] = real.(ifft(sol.u[j])); # u[t,x,IC]
+        u_sol[j,:] = real.(ifft_norm(sol.u[j])); # u[t,x,IC]
+    end
+    return u_sol
+end
+
+"""
+    quadratic_nonlinear!(uhat)
+
+"""
+function quadratic_nonlinear(uhat,N,dL,alpha)
+    # N = Int(size(uhat,1)); # Instead of passing in N?
+    M = Int((3/2)*N); # For dealiasing -> For MZ models must be 3*N to account for unresolved modes + dealiasing
+    k_M = reduce(vcat,(2*π/dL)*[0:M/2-1 -M/2:-1]); # Wavenumbers for convolution sum with padding
+    u_M = zeros(Complex{Float64},Int(M));
+    u_M[1:Int(N/2)] = uhat[1:Int(N/2)];
+    u_M[end-Int(N/2)+2:end] = uhat[Int(N/2)+2:end];
+    u_M_sum = fft_norm(ifft_norm(u_M).*ifft_norm(u_M));
+    u_M_convolution = alpha*im.*k_M/2.0 .*u_M_sum;
+    uhat_nonlinear  = zeros(Complex{Float64},Int(N)); # Extract N modes from convolution
+    uhat_nonlinear[1:Int(N/2)] = u_M_convolution[1:Int(N/2)];
+    uhat_nonlinear[end-Int(N/2)+2:end] = u_M_convolution[end-Int(N/2)+2:end];
+    return uhat_nonlinear
+end
+
+"""
+    kdv_pde!(duhat,uhat,p,t_span)
+
+"""
+function kdv_pde!(duhat,uhat,p,t)
+    N, dL = p;
+    alpha = 1.0;
+    epsilon = (0.1)^2;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= epsilon*im.*k.^3 .*uhat .- uhat_nonlinear;
+end
+
+"""
+    kdv_implicit_pde!(duhat,uhat,p,t_span)
+
+"""
+function kdv_implicit_pde!(duhat,uhat,p,t)
+    N, dL = p;
+    alpha = 1.0;
+    epsilon = (0.1)^2;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry;
+    duhat .= epsilon*im.*k.^3 .*uhat;
+end
+
+"""
+    kdv_explicit_pde!(duhat,uhat,p,t_span)
+
+"""
+function kdv_explicit_pde!(duhat,uhat,p,t)
+    N, dL = p;
+    alpha = 1.0;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= -uhat_nonlinear;
+end
+
+"""
+    viscous_burgers_explicit_pde!(duhat,uhat,p,t_span)
+
+"""
+function viscous_burgers_explicit_pde!(duhat,uhat,p,t)
+    N, dL = p;
+    alpha = 1.0;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= -uhat_nonlinear;
+end
+
+"""
+    inviscid_burgers_pde!(duhat,uhat,p,t_span)
+
+"""
+function inviscid_burgers_pde!(duhat,uhat,p,t)
+    N, dL = p;
+    alpha = 1.0;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= -uhat_nonlinear;
 end
