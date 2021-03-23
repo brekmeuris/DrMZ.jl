@@ -13,16 +13,16 @@ Add this to your startup file also, "~/.julia/config/startup.jl"
 module DrMZ
 
 # Export the functions for General.jl
-export error_test_sse, error_test_rel, periodic_fill_domain, periodic_fill_solution, solution_interpolation, reduced_initial_condition, mse_error, trapz, norm_rel_error, solution_spatial_sampling, fft_norm, ifft_norm, trapz1, simpson13, simpson38, simpson, average_error, gram_schmidt
+export error_test_sse, error_test_rel, periodic_fill_domain, periodic_fill_solution, solution_interpolation, reduced_initial_condition, mse_error, trapz, norm_rel_error, solution_spatial_sampling, fft_norm, ifft_norm, trapz1, simpson13, simpson38, simpson, average_error, gram_schmidt, ic_error, average_ic_error
 export reduced_initial_condition_full
 
 # Export the functions for OperatorNN.jl
-export predict, loss_all, build_dense_model, build_branch_model, build_trunk_model, train_model, loss, exp_kernel_periodic, generate_periodic_functions, solution_extraction, generate_periodic_train_test, save_model, save_data, load_data, load_data_initial_conditions, build_trunk_model_layer_spec, load_data_train_test, generate_periodic_train_test_initial_conditions, load_data_initial_conditions, load_model
+export predict, loss_all, build_dense_model, build_branch_model, build_trunk_model, train_model, loss, exp_kernel_periodic, generate_periodic_functions, solution_extraction, generate_periodic_train_test, save_model, save_data, load_data, load_data_initial_conditions, build_trunk_model_layer_spec, load_data_train_test, generate_periodic_train_test_initial_conditions, load_data_initial_conditions, load_model, min_max_scaler, min_max_transform, standard_scaler, standard_transform, predict_min_max
 export generate_periodic_train_test_full, build_branch_model_reduced, build_trunk_model_reduced, nfan, ofeltype, epseltype, kaiming_uniform, glorot_uniform
 export penalty, loss_all_MZ, train_model_MZ, train_model_MZ_coefficients
 
 # Export the functions for PDESolve.jl
-export advection_pde!, fourier_diff, fourier_two_diff, cheby_grid, cheby_diff_matrix, opnn_advection_pde!, advection_diffusion_pde!, opnn_advection_diffusion_pde!, generate_fourier_solution, kdv_pde!, quadratic_nonlinear, kdv_integrating_pde!, inviscid_burgers_pde!, generate_fourier_solution_stiff, kdv_implicit_pde!, kdv_explicit_pde!, viscous_burgers_explicit_pde!
+export advection_pde!, fourier_diff, fourier_two_diff, cheby_grid, cheby_diff_matrix, opnn_advection_pde!, advection_diffusion_pde!, opnn_advection_diffusion_pde!, generate_fourier_solution, kdv_pde!, quadratic_nonlinear, kdv_integrating_pde!, inviscid_burgers_pde!, generate_fourier_solution_IMEX, kdv_implicit_pde!, kdv_explicit_pde!, generate_fourier_solution_split, quadratic_nonlinear_pde!, viscous_burgers_pde!
 export opnn_advection_pde_full!, opnn_advection_diffusion_pde_full!
 
 # Export the functions for DBasis.jl
@@ -39,7 +39,7 @@ using Flux.Data: DataLoader
 using Flux: mse
 using ProgressMeter: @showprogress
 using Distributions: MvNormal
-using LinearAlgebra: Symmetric, norm, eigmin, I, qr, diagm, svd, lq
+using LinearAlgebra: Symmetric, norm, eigmin, I, qr, diagm, svd, lq, Diagonal
 using Random: randperm, AbstractRNG
 using Random
 using ColorSchemes # Cut this one down...
@@ -48,9 +48,10 @@ using Interpolations#: LinearInterpolation, interpolate
 using BSON: @save
 using BSON: @load
 using Printf
-using Plots; pyplot()
+using Plots; pyplot() # Is this needed?
 using ToeplitzMatrices
 using Plots.PlotMeasures
+using Statistics: mean, std
 
 # Load functions
 include("General.jl")

@@ -20,6 +20,27 @@ function predict(branch,trunk,initial_condition,x_locations,t_values)
 end
 
 """
+    predict_min_max(branch,trunk,initial_condition,x_locations,t_values,scale_object)
+
+Uses the trained operator neural net branch and trunk to predict solution at specified output locations when using min-max normalization
+
+input: branch, trunk, initial condition, x locations, t values
+
+output: u(x,t)
+
+"""
+function predict_min_max(branch,trunk,initial_condition,x_locations,t_values,scale_object)
+    u = zeros(size(t_values,1),size(x_locations,1));
+    bk = branch(initial_condition)';
+    for i in 1:size(t_values,1)
+        for j in 1:size(x_locations,1)
+            u[i,j] = bk*trunk(min_max_transform(vcat(t_values[i],x_locations[j]),scale_object));
+        end
+    end
+    return u
+end
+
+"""
     loss_all(branch,trunk,initial_conditon,solution_location,target_value)
 
 Computes the MSE for a complete dataset, Flux.mse does not seem to compute the correct MSE when applied to multiple instances. Use Flux.mse for actual training purposes and this function when you want to quantify the performance of the trained network for all of the training or testing data.
@@ -53,119 +74,34 @@ function build_dense_model(number_layers,neurons,activations)
 end
 
 """
-    function build_branch_model(input_size,neurons;activation=relu)
-
-        DEPRECATE!!!
-
-Builds the branch FFNN with 3 layers for a given input size and number of neurons
-
-input: input vector size, number of neurons
-
-output: branch (Flux dense layer)
-
-"""
-function build_branch_model(input_size,neurons;activation=relu)
-    return Chain(Dense(input_size,neurons,activation),
-        Dense(neurons,neurons,activation),
-        Dense(neurons,neurons))|>f64; # Pipe it to be Float64
-end
-
-"""
-    function build_branch_model_reduced(input_size,neurons;activation=relu)
-
-        DEPRECATE!!!
-
-Builds the branch FFNN with 2 layers for a given input size and number of neurons
-
-input: input vector size, number of neurons
-
-output: branch (Flux dense layer)
-
-"""
-function build_branch_model_reduced(input_size,neurons;activation=relu)#,initialization=kaiming_uniform)
-    return Chain(Dense(input_size,neurons,activation),#;initW = kaiming_uniform, initb = zeros),
-        # Dense(neurons,neurons,activation),
-        Dense(neurons,neurons))|>f64; # Pipe it to be Float64
-end
-
-"""
-    function build_trunk_model(input_size,neurons;activation=relu)
-
-        DEPRECATE!!!
-
-Builds the trunk FFNN with 4 layers for a given input size and number of neurons
-
-input: input vector size, number of neurons
-
-output: trunk (chain of Flux dense layers)
-
-"""
-function build_trunk_model(input_size,neurons,activation=relu)
-    return Chain(Dense(input_size,neurons,activation),
-        Dense(neurons,neurons,activation),
-        Dense(neurons,neurons,activation),
-        Dense(neurons,neurons,activation))|>f64; # Pipe it to be Float64
-end
-
-"""
-    function build_trunk_model_reduced(input_size,neurons;activation=relu)
-
-        DEPRECATE!!!
-
-Builds the trunk FFNN with 3 layers for a given input size and number of neurons
-
-input: input vector size, number of neurons
-
-output: trunk (Flux dense layer)
-
-"""
-function build_trunk_model_reduced(input_size,neurons;activation=relu)#,initialization=kaiming_uniform)
-    return Chain(Dense(input_size,neurons,activation),#;initW = kaiming_uniform, initb = zeros),
-        # Dense(neurons,neurons,activation),
-        Dense(neurons,neurons,activation),#;initW = kaiming_uniform, initb = zeros),
-        Dense(neurons,neurons,activation))|>f64; # Pipe it to be Float64
-end
-
-"""
-    function build_trunk_model_layer_spec(input_size,neurons_2,neurons_3;activation=relu)
-
-        DEPRECATE!!!
-
-Builds the trunk FFNN with 3 layers for a given input size and number of neurons
-
-input: input vector size, number of neurons
-
-output: trunk (Flux dense layer)
-
-"""
-function build_trunk_model_layer_spec(input_size,neurons,neurons_2,neurons_3;activation=relu)#,initialization=kaiming_uniform)
-    return Chain(Dense(input_size,neurons,activation),#;initW = kaiming_uniform, initb = zeros),
-        # Dense(neurons,neurons,activation),
-        Dense(neurons,neurons_2,activation),#;initW = kaiming_uniform, initb = zeros),
-        Dense(neurons_2,neurons_3,activation))|>f64; # Pipe it to be Float64
-end
-
-"""
     train_model(branch,trunk,n_epoch,train_data;learning_rate=0.00001)
 
 Trains the operator neural network using the mean squared error and ADAM optimization
 
-input: branch, trunk, number of training epochs, training data
+input: branch, trunk, number of training epochs, training data # UPDATE
 
-output: trained branch, trained trunk, MSE loss for each epoch
+output: trained branch, trained trunk, MSE loss for each epoch # UPDATE
+
+To Do : ADD A PARAMETER TO APPLY NORMALIZATION OR SCALING...
 
 """
-function train_model(branch,trunk,n_epoch,train_data;learning_rate=1e-5)
+function train_model(branch,trunk,n_epoch,train_data,test_data,pde_function;learning_rate=1e-5)
     loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)
     par = Flux.params(branch,trunk);
     opt = ADAM(learning_rate);
     loss_all_train = Array{Float64}(undef,n_epoch+1,1);
-    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
+    loss_all_test = Array{Float64}(undef,n_epoch+1,1);
+    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]); # To Do update to trend test error as well
+    loss_all_test[1] = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]); # To Do update to trend test error as well
     @showprogress 1 "Training the model..." for i in 1:n_epoch
         Flux.train!(loss,par,train_data,opt);
-        loss_all_train[i+1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
+        loss_all_train[i+1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]);
+        loss_all_test[i+1] = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]);
+        if i%2500 == 0
+            save_model(branch,trunk,i,loss_all_train,loss_all_test,pde_function)
+        end
     end
-    return branch,trunk,loss_all_train
+    return branch,trunk,loss_all_train,loss_all_test
 end
 
 """
@@ -206,7 +142,8 @@ end
 
 """
     solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
-FINISH
+
+FINISH!!!
 
 """
 function solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
@@ -239,30 +176,32 @@ end
 """
     generate_periodic_train_test(L1,L2,t_span,number_sensors,number_test_functions,number_train_functions,number_solution _points;length_scale=0.5,batch=number_solution_points,dt=1e-3)
 
-FINISH!!! THIS SHOULD ALSO PASS IN RHS AND ANY PARAMETERS NEEDED FOR ODE SOLVE
-CREATE ALTERNATIVE FUNCTION THAT IS GENERATE_STANDARD_TRAIN_TEST FOR FUNCTIONS OVER FULL DOMAIN
-
-EDIT THIS SO THAT WHAT IS OUTPUT IS OVER FULL DOMAIN.
+FINISH!!!
 
 """
-function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function;length_scale=0.5,batch=number_solution_points,dt=1e-3)
+function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;length_scale=0.5,batch=number_solution_points,dt_size=1e-3,domain="periodic")
 
-    x_full = range(L1,stop = L2,length = number_sensors+1); # Full domain
-    random_ics = generate_periodic_functions(x_full,Int(number_train_functions + number_test_functions),length_scale)
-    dL = abs(L2-L1);
-
-    # Set up x domain and wave vector for spectral solution
-    j = reduce(vcat,[0:1:number_sensors-1]);
-    x = (dL.*j)./number_sensors;
-    k = reduce(vcat,(2*π/dL)*[0:number_sensors/2-1 -number_sensors/2:-1]);
+    if domain == "periodic"
+        x_full = range(L1,stop = L2,length = number_sensors+1); # Full domain for periodic number of sensors
+        random_ics = generate_periodic_functions(x_full,Int(number_train_functions + number_test_functions),length_scale)
+        dL = abs(L2-L1);
+        # Set up x domain and wave vector for spectral solution
+        j = reduce(vcat,[0:1:number_sensors-1]);
+        x = (dL.*j)./number_sensors;
+        k = reduce(vcat,(2*π/dL)*[0:number_sensors/2-1 -number_sensors/2:-1]);
+    elseif domain == "full"
+        x_full = range(L1,stop = L2,length = number_sensors); # Full domain for periodic number of sensors
+        random_ics = generate_periodic_functions(x_full,Int(number_train_functions + number_test_functions),length_scale)
+        dL = abs(L2-L1);
+        # Set up x domain and wave vector for spectral solution
+        j = reduce(vcat,[0:1:number_sensors-2]);
+        x = (dL.*j)./Int(number_sensors-1);
+        k = reduce(vcat,(2*π/dL)*[0:Int(number_sensors-1)/2-1 -Int(number_sensors-1)/2:-1]);
+    end
 
     # Generate the dataset using spectral method
-    interp_train_sample = zeros(size(x,1),number_train_functions);
-    interp_test_sample = zeros(size(x,1),number_test_functions);
-    t_length = t_span[2]/dt + 1;
+    t_length = t_span[2]/dt_size + 1;
     t = range(t_span[1],stop = t_span[2], length = Int(t_length));
-    u_train = zeros(Int(t_length),number_sensors,number_train_functions);
-    u_test = zeros(Int(t_length),number_sensors,number_test_functions);
     train_ic = zeros(number_sensors,number_solution_points,number_train_functions);
     train_loc = zeros(2,number_solution_points,number_train_functions);
     train_target = zeros(1,number_solution_points,number_train_functions);
@@ -270,42 +209,32 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
     test_loc = zeros(2,number_solution_points,number_test_functions);
     test_target = zeros(1,number_solution_points,number_test_functions);
 
-    p = [number_sensors,dL];
-
-    @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
-
-        interp_train_sample[:,i] = random_ics[1:end-1,i];
-
-        # Transform random initial condition to Fourier domain
-        uhat0 = fft(interp_train_sample[:,i]);
-
-        # Solve the system of ODEs in Fourier domain
-        prob = ODEProblem(pde_function,uhat0,t_span,p);
-        sol = solve(prob,DP5(),reltol=1e-10,abstol=1e-14,saveat = dt)
-
-        for j in 1:size(sol.t,1) # Reshape output and plot
-            u_train[j,:,i] = real.(ifft(sol.u[j])); # u[t,x,IC]
+    if domain == "periodic"
+        @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
+            interp_train_sample = random_ics[1:end-1,i];
+            u_train = generate_fourier_solution(L1,L2,t_span,number_sensors,interp_train_sample,pde_function_handle,dt=dt_size);
+            train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x,t,u_train,interp_train_sample,number_solution_points);
         end
-
-        train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x,t,u_train[:,:,i],interp_train_sample[:,i],number_solution_points);
-    end
-
-    @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
-
-        interp_test_sample[:,i] = random_ics[1:end-1,Int(number_train_functions+i)];
-
-        # Transform random initial condition to Fourier domain
-        uhat0 = fft(interp_test_sample[:,i]); # Transform random initial condition to Fourier domain
-
-        # Solve the system of ODEs in Fourier domain
-        prob = ODEProblem(pde_function,uhat0,t_span,p);
-        sol = solve(prob,DP5(),reltol=1e-10,abstol=1e-14,saveat = dt)
-
-        for j in 1:size(sol.t,1) # Reshape output and plot
-            u_test[j,:,i] = real.(ifft(sol.u[j])); # u[t,x,IC]
+        @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
+            interp_test_sample = random_ics[1:end-1,Int(number_train_functions+i)];
+            u_test = generate_fourier_solution(L1,L2,t_span,number_sensors,interp_test_sample,pde_function_handle,dt=dt_size);
+            test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x,t,u_test,interp_test_sample,number_solution_points);
         end
-
-        test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x,t,u_test[:,:,i],interp_test_sample[:,i],number_solution_points);
+    elseif domain == "full"
+        @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
+            interp_train_sample_fourier = random_ics[1:end-1,i];
+            u_train_fourier = generate_fourier_solution(L1,L2,t_span,Int(number_sensors-1),interp_train_sample_fourier,pde_function_handle,dt=dt_size);
+            interp_train_sample = random_ics[:,i];
+            u_train = periodic_fill_solution(u_train_fourier);
+            train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x_full,t,u_train,interp_train_sample,number_solution_points);
+        end
+        @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
+            interp_test_sample_fourier = random_ics[1:end-1,Int(number_train_functions+i)];
+            u_test_fourier = generate_fourier_solution(L1,L2,t_span,Int(number_sensors-1),interp_test_sample_fourier,pde_function_handle,dt=dt_size);
+            interp_test_sample = random_ics[:,Int(number_train_functions+i)];
+            u_test = periodic_fill_solution(u_test_fourier);
+            test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x_full,t,u_test,interp_test_sample,number_solution_points);
+        end
     end
 
     # Combine data sets from each function
@@ -318,18 +247,20 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
 
     train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);#,shuffle = true);
     test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
-    return train_data, test_data, u_train, u_test, x, t # THIS X WILL NEED TO CHANGE ONCE WE EXPORT THE FULL X DOMAIN...
+    return train_data, test_data
 end
 
 """
-    save_model(branch,trunk,n_epoch)
+    save_model(branch,trunk,n_epoch,loss_all_train,loss_all_test,pde_function)
 
 FINISH!!!
 
 """
-function save_model(branch,trunk,n_epoch,pde_function)
+function save_model(branch,trunk,n_epoch,loss_all_train,loss_all_test,pde_function)
     @save @sprintf("branch_epochs_%i_%s.bson",n_epoch,pde_function) branch
     @save @sprintf("trunk_epochs_%i_%s.bson",n_epoch,pde_function) trunk
+    @save @sprintf("train_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_train
+    @save @sprintf("test_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_test
 end
 
 """
@@ -350,11 +281,7 @@ end
 FINISH!!!
 
 """
-function save_data(train_data,test_data,u_train,u_test,n_epoch,number_solution_points,loss_all_train,pde_function)
-    number_train_functions = Int(size(train_data.data[1],2)/number_solution_points);
-    number_test_functions = Int(size(test_data.data[1],2)/number_solution_points);
-    @save @sprintf("u_sol_train_functions_%i_%s.bson",number_train_functions,pde_function) u_train
-    @save @sprintf("u_sol_test_functions_%i_%s.bson",number_test_functions,pde_function) u_test
+function save_data(train_data,test_data,n_epoch,number_train_functions,number_test_functions,number_solution_points,pde_function)
     train_ic = train_data.data[1];
     train_loc = train_data.data[2];
     train_sol = train_data.data[3];
@@ -367,7 +294,6 @@ function save_data(train_data,test_data,u_train,u_test,n_epoch,number_solution_p
     @save @sprintf("test_loc_data_%i_%s.bson",number_test_functions,pde_function) test_loc
     @save @sprintf("train_target_data_%i_%s.bson",number_train_functions,pde_function) train_sol
     @save @sprintf("test_target_data_%i_%s.bson",number_test_functions,pde_function) test_sol
-    @save @sprintf("train_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_train
 end
 
 """
@@ -385,13 +311,11 @@ function load_data(n_epoch,number_train_functions,number_test_functions,pde_func
     @load @sprintf("test_ic_data_%i_%s.bson",number_test_functions,pde_function) test_ic
     @load @sprintf("test_loc_data_%i_%s.bson",number_test_functions,pde_function) test_loc
     @load @sprintf("test_target_data_%i_%s.bson",number_test_functions,pde_function) test_sol
-    @load @sprintf("u_sol_test_functions_%i_%s.bson",number_test_functions,pde_function) u_test
-    @load @sprintf("u_sol_train_functions_%i_%s.bson",number_train_functions,pde_function) u_train
-    return branch, trunk, train_ic, train_loc, train_sol, test_ic, test_loc, test_sol, u_train, u_test
+    return branch, trunk, train_ic, train_loc, train_sol, test_ic, test_loc, test_sol#
 end
 
 """
-    load_data_train_test(number_train_functions,number_test_functions)
+    load_data_train_test(number_train_functions,number_test_functions,pde_function)
 
 FINISH!!!
 
@@ -419,139 +343,44 @@ function load_data_initial_conditions(number_train_functions,number_test_functio
 end
 
 """
-    nfan(n_out, n_in=1) -> Tuple
-    nfan(dims...)
-    nfan(dims::Tuple)
-
-DIRECT FROM THE OLD JULIA FLUX UTILITIES LIBRARY
-
-For a layer characterized by dimensions `dims`, return a tuple `(fan_in, fan_out)`, where `fan_in`
-is the number of input neurons connected to an output one, and `fan_out` is the number of output neurons
-connected to an input one.
-This function is mainly used by weight initializers, e.g., [`kaiming_normal`](@ref Flux.kaiming_normal).
-# Examples
-```jldoctest
-julia> layer = Dense(10, 20)
-Dense(10, 20)
-julia> Flux.nfan(size(layer.W))
-(10, 20)
-julia> layer = Conv((3, 3), 2=>10)
-Conv((3, 3), 2=>10)
-julia> Flux.nfan(size(layer.weight))
-(18, 90)
-```
-"""
-nfan() = 1, 1 # fan_in, fan_out
-nfan(n) = 1, n # A vector is treated as a n×1 matrix
-nfan(n_out, n_in) = n_in, n_out # In case of Dense kernels: arranged as matrices
-nfan(dims::Tuple) = nfan(dims...)
-nfan(dims...) = prod(dims[1:end-2]) .* (dims[end-1], dims[end]) # In case of convolution kernels
-
-ofeltype(x, y) = convert(float(eltype(x)), y)
-epseltype(x) = eps(float(eltype(x)))
+    min_max_scaler(x;dim = 2)
 
 """
-    kaiming_uniform([rng=GLOBAL_RNG], dims...; gain = √2)
-Return an `Array` of size `dims` containing random variables taken from a uniform distribution in the
-interval `[-x, x]`, where `x = gain * sqrt(3/fan_in)`.
-
-DIRECT FROM THE OLD JULIA FLUX UTILITIES LIBRARY
-
-This method is described in [1] and also known as He initialization.
-# Examples
-```jldoctest; setup = :(using Random; Random.seed!(0))
-julia> Flux.kaiming_uniform(3, 2)
-3×2 Array{Float32,2}:
-  0.950413   1.27439
-  1.4244    -1.28851
- -0.907795   0.0909376
-```
-# See also
-* kaiming initialization using normal distribution: [`kaiming_normal`](@ref Flux.kaiming_normal)
-* glorot initialization using normal distribution: [`glorot_normal`](@ref Flux.glorot_normal)
-* glorot initialization using uniform distribution: [`glorot_uniform`](@ref Flux.glorot_uniform)
-* calculation of `fan_in` and `fan_out`: [`nfan`](@ref Flux.nfan)
-# References
-[1] He, Kaiming, et al. "Delving deep into rectifiers: Surpassing human-level performance on imagenet classification." _Proceedings of the IEEE international conference on computer vision_. 2015.
-"""
-function kaiming_uniform(rng::AbstractRNG, dims...; gain = √2)
-  bound = Float32(√3 * gain / sqrt(first(nfan(dims...)))) # fan_in
-  return (rand(rng, Float32, dims...) .- 0.5f0) .* 2bound
-end
-
-kaiming_uniform(dims...; kwargs...) = kaiming_uniform(Random.GLOBAL_RNG, dims...; kwargs...)
-kaiming_uniform(rng::AbstractRNG; kwargs...) = (dims...; kwargs...) -> kaiming_uniform(rng, dims...; kwargs...)
-
-"""
-    glorot_uniform([rng=GLOBAL_RNG], dims...)
-Return an `Array` of size `dims` containing random variables taken from a uniform
-distribution in the interval ``[-x, x]``, where `x = sqrt(6 / (fan_in + fan_out))`.
-This method is described in [1] and also known as Xavier initialization.
-
-DIRECT FROM THE OLD JULIA FLUX UTILITIES LIBRARY
-
-# Examples
-```jldoctest; setup = :(using Random; Random.seed!(0))
-julia> Flux.glorot_uniform(2, 3)
-2×3 Array{Float32,2}:
- 0.601094  -0.57414   -0.814925
- 0.900868   0.805994   0.057514
-```
-# See also
-* glorot initialization using normal distribution: [`glorot_normal`](@ref Flux.glorot_normal)
-* kaiming initialization using normal distribution: [`kaiming_normal`](@ref Flux.kaiming_normal)
-* kaiming initialization using uniform distribution: [`kaiming_uniform`](@ref Flux.kaiming_uniform)
-* calculation of `fan_in` and `fan_out`: [`nfan`](@ref Flux.nfan)
-# References
-[1] Glorot, Xavier, and Yoshua Bengio. "Understanding the difficulty of training deep feedforward neural networks." _Proceedings of the thirteenth international conference on artificial intelligence and statistics_. 2010.
-"""
-glorot_uniform(rng::AbstractRNG, dims...) = (rand(rng, Float32, dims...) .- 0.5f0) .* sqrt(24.0f0 / sum(nfan(dims...)))
-glorot_uniform(dims...) = glorot_uniform(Random.GLOBAL_RNG, dims...)
-glorot_uniform(rng::AbstractRNG) = (dims...) -> glorot_uniform(rng, dims...)
-
-"""
-    train_model_MZ(branch,trunk,n_epoch,train_data,N;learning_rate=0.00001)
-
-Trains the operator neural network using the mean squared error and ADAM optimization
-
-input: branch, trunk, number of training epochs, training data
-
-output: trained branch, trained trunk, MSE loss for each epoch
-
-"""
-function train_model_MZ(branch,trunk,n_epoch,train_data;learning_rate=1e-5,lambda=1.0)
-    l1(x) = sum(abs.(x));
-    loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)+lambda*sum(l1, params(branch));#norm(branch(x),1);#+Flux.mse(sum(branch(x)[1:16])-sum(branch(x)[17:128]),0.0);
-    par = Flux.params(branch,trunk);
-    opt = ADAM(learning_rate);
-    loss_all_train = Array{Float64}(undef,n_epoch+1,1);
-    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
-    @showprogress 1 "Training the model..." for i in 1:n_epoch
-        Flux.train!(loss,par,train_data,opt);
-        loss_all_train[i+1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
-    end
-    return branch,trunk,loss_all_train
+function min_max_scaler(x;dim = 2)
+    scaler = 1.0 ./ (maximum(x,dims=dim) .- minimum(x,dims=dim));
+    min = -minimum(x,dims=dim).*scaler;
+    return scaler, min
 end
 
 """
-    train_model_MZ_coeffs(branch,trunk,n_epoch,train_data,N;learning_rate=0.00001)
-
-Trains the operator neural network using the mean squared error and ADAM optimization
-
-input: branch, trunk, number of training epochs, training data
-
-output: trained branch, trained trunk, MSE loss for each epoch
+    min_max_transform(x,scale_object;min = 0,max = 1)
 
 """
-function train_model_MZ_coefficients(branch,trunk,n_epoch,train_data,N;learning_rate=1e-5,lambda=1.0)
-    loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)+lambda*(norm(branch(x),1)-norm(branch(x)[1:N],1));
-    par = Flux.params(branch,trunk);
-    opt = ADAM(learning_rate);
-    loss_all_train = Array{Float64}(undef,n_epoch+1,1);
-    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
-    @showprogress 1 "Training the model..." for i in 1:n_epoch
-        Flux.train!(loss,par,train_data,opt);
-        loss_all_train[i+1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
-    end
-    return branch,trunk,loss_all_train
+function min_max_transform(x,scale_object;min = 0,max = 1)
+    x_scaled = deepcopy(x);
+    x_scaled .*= scale_object[1][:];
+    x_scaled .+= scale_object[2][:];
+    x_scaled .*= (max-min);
+    x_scaled .+= min;
+    return x_scaled
+end
+
+"""
+    standard_scaler(x;dim=2)
+
+"""
+function standard_scaler(x;dim=2)
+    x_mean = mean(x,dims=dim);
+    x_std = std(x,dims=dim,corrected=false)
+    return x_mean, x_std
+end
+
+"""
+    standard_transform(x,scale_object)
+
+"""
+function standard_transform(x,scale_object)
+    x_scaled = deepcopy(x);
+    x_scaled .-= scale_object[1][:];
+    x_scaled ./= scale_object[2][:];
 end

@@ -27,7 +27,7 @@ function fourier_diff(sol,N,dL;format="matrix")
         row = vcat(col[1], col[N:-1:2]);
         diff_matrix = Toeplitz(col,row);
         diff_sol = (2*pi/dL)*diff_matrix*sol; # Make dx calc abs...
-    else
+    elseif format == "spectral"
         k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
         sol_k = fft(sol);
         sol_k[Int(N/2)+1] = 0;
@@ -91,19 +91,6 @@ function opnn_advection_pde!(du,u,p,t)
     du .= -Dmatrix*u;
 end
 
-# """
-#     opnn_advection_pde_full!(du,u,p,t_span)
-#
-# """
-# function opnn_advection_pde_full!(du,u,p,t_span)
-#     basis, N, dL = p;
-#     uapprox = spectral_approximation(basis,u);
-#     duapprox = zeros(N);
-#     duapprox[1:(N-1)] = fourier_diff(uapprox[1:(N-1)],(N-1),dL);
-#     duapprox[N] = duapprox[1];
-#     du .= -spectral_coefficients(basis,duapprox);
-# end
-
 """
     advection_diffusion_pde!(duhat,uhat,p,t_span)
 
@@ -129,23 +116,6 @@ function opnn_advection_diffusion_pde!(du,u,p,t)
     # du .= -spectral_coefficients(basis,duapprox) + D*spectral_coefficients(basis,duapprox2);
     du .= -Dmatrix*u .+ D*D2matrix*u;
 end
-
-# """
-#     opnn_advection_diffusion_pde_full!(du,u,p,t_span)
-#
-# """
-# function opnn_advection_diffusion_pde_full!(du,u,p,t_span)
-#     basis, N, dL = p;
-#     D = 0.015;
-#     uapprox = spectral_approximation(basis,u);
-#     duapprox = zeros(N);
-#     duapprox2 = zeros(N);
-#     duapprox[1:(N-1)] = fourier_diff(uapprox[1:(N-1)],(N-1),dL);
-#     duapprox2[1:(N-1)] = fourier_diff(duapprox[1:(N-1)],(N-1),dL);
-#     duapprox[N] = duapprox[1];
-#     duapprox2[N] = duapprox2[1];
-#     du .= -spectral_coefficients(basis,duapprox) + D*spectral_coefficients(basis,duapprox2);
-# end
 
 """
 
@@ -173,9 +143,14 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
 end
 
 """
+    generate_fourier_solution_split(L1,L2,tspan,N,initial_condition,n_linear,rhs_sign,nu,pde_function_explicit;dt_fixed=1e-3,rtol=1e-10,atol=1e-14)
+
+n_linear: 2 for viscous Burgers, 3 for KdV; order of linear derivative
+
+rhs_sign: 1 for viscous Burgers, -1 for KdV; u_t = -uu_x + (rhs_sign)*(u_xx or u_xxx)
 
 """
-function generate_fourier_solution_stiff(L1,L2,tspan,N,initial_condition,pde_linear,pde_function_explicit;dt_fixed=1e-3,rtol=1e-10,atol=1e-14)
+function generate_fourier_solution_split(L1,L2,tspan,N,initial_condition,n_linear,rhs_sign,nu,pde_function_explicit;dt_fixed=1e-3,rtol=1e-10,atol=1e-14)
     # Transform random initial condition to Fourier domain
     # uhat0 = fft(initial_condition);
     uhat0 = fft_norm(initial_condition);
@@ -185,8 +160,13 @@ function generate_fourier_solution_stiff(L1,L2,tspan,N,initial_condition,pde_lin
     p = [N,dL];
     t_length = tspan[2]/dt_fixed+1;
 
+    # Set up linear portion of ODEs
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
+    A = rhs_sign*Diagonal(nu*(im.*k).^n_linear);
+    A[Int(N/2)+1,Int(N/2)+1] = 0.0; # Force most negative mode to be zero by augmenting matrix with a zero
+
     # Solve the system of ODEs in Fourier domain
-    prob = SplitODEProblem(pde_linear,pde_function_explicit,uhat0,tspan,p);
+    prob = SplitODEProblem(DiffEqArrayOperator(A),pde_function_explicit,uhat0,tspan,p); # TdDo: add exit criteria...?
     sol = solve(prob,ETDRK4(),reltol=rtol,abstol=atol,dt = dt_fixed,saveat = dt_fixed)
 
     u_sol = zeros(Int(t_length),N);
@@ -211,7 +191,7 @@ function quadratic_nonlinear(uhat,N,dL,alpha)
     u_M_sum = fft_norm(ifft_norm(u_M).*ifft_norm(u_M));
     u_M_convolution = alpha*im.*k_M/2.0 .*u_M_sum;
     uhat_nonlinear  = zeros(Complex{Float64},Int(N)); # Extract N modes from convolution
-    uhat_nonlinear[1:Int(N/2)] = u_M_convolution[1:Int(N/2)];
+    uhat_nonlinear[1:Int(N/2)] = u_M_convolution[1:Int(N/2)]; # To Do probably a more efficient way to do this since we evolve all modes
     uhat_nonlinear[end-Int(N/2)+2:end] = u_M_convolution[end-Int(N/2)+2:end];
     return uhat_nonlinear
 end
@@ -231,42 +211,17 @@ function kdv_pde!(duhat,uhat,p,t)
 end
 
 """
-    kdv_implicit_pde!(duhat,uhat,p,t_span)
+    viscous_burgers_pde!(duhat,uhat,p,t_span)
 
 """
-function kdv_implicit_pde!(duhat,uhat,p,t)
+function viscous_burgers_pde!(duhat,uhat,p,t)
     N, dL = p;
     alpha = 1.0;
-    epsilon = (0.1)^2;
+    epsilon = 0.1;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
-    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry;
-    duhat .= epsilon*im.*k.^3 .*uhat;
-end
-
-"""
-    kdv_explicit_pde!(duhat,uhat,p,t_span)
-
-"""
-function kdv_explicit_pde!(duhat,uhat,p,t)
-    N, dL = p;
-    alpha = 1.0;
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
-    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
-    duhat .= -uhat_nonlinear;
-end
-
-"""
-    viscous_burgers_explicit_pde!(duhat,uhat,p,t_span)
-
-"""
-function viscous_burgers_explicit_pde!(duhat,uhat,p,t)
-    N, dL = p;
-    alpha = 1.0;
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
-    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
-    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
-    duhat .= -uhat_nonlinear;
+    duhat .= -epsilon*k.^2 .*uhat .- uhat_nonlinear;
 end
 
 """
@@ -274,6 +229,19 @@ end
 
 """
 function inviscid_burgers_pde!(duhat,uhat,p,t)
+    N, dL = p;
+    alpha = 1.0;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= -uhat_nonlinear;
+end
+
+"""
+    quadratic_nonlinear_pde!(duhat,uhat,p,t_span)
+
+"""
+function quadratic_nonlinear_pde!(duhat,uhat,p,t)
     N, dL = p;
     alpha = 1.0;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers

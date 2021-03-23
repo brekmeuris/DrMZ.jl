@@ -101,21 +101,6 @@ function reduced_initial_condition(L1,L2,N,x_locations,initial_condition)
     return x_reduced, ic_reduced#, ic_interpolate
 end
 
-# """
-#     reduced_initial_condition_full(L1,L2,N,x_locations,initial_condition)
-#
-# """
-# function reduced_initial_condition_full(L1,L2,N,x_locations,initial_condition)
-#     dL = abs(L2-L1);
-#     j = reduce(vcat,[0:1:(N-1)-1]);
-#     x_interpolate = zeros(N);
-#     x_interpolate[1:(N-1)] = (dL.*j)./(N-1);
-#     x_interpolate[N] = L2;
-#     ic_interpolate_fit = LinearInterpolation(x_locations,initial_condition)
-#     ic_interpolate = [ic_interpolate_fit(i) for i in x_interpolate];
-#     return x_interpolate, ic_interpolate
-# end
-
 """
     mse_error(target,prediction)
 
@@ -142,7 +127,7 @@ function norm_rel_error(target,prediction)
     end
     error = zeros(size(target,1))
     for i in 1:size(target,1)
-        error[i] = norm(prediction[i,:].-target[i,:])/norm(target[i,:]);
+        error[i] = norm(prediction[i,:]-target[i,:])/norm(target[i,:]);
     end
     return error
 end
@@ -268,8 +253,8 @@ end
 
 """
 function average_error(domain,error)
-    return 1/(domain[end]-domain[1])*simpson(domain,error)
-    # return 1/(domain[end]-domain[1])*trapz(domain,error)
+    # return 1/(domain[end]-domain[1])*simpson(domain,error)
+    return 1/(domain[end]-domain[1])*trapz(domain,error)
 end
 
 function gram_schmidt(A;sorted="false",tol = 1e-8)
@@ -302,4 +287,28 @@ function gram_schmidt(A;sorted="false",tol = 1e-8)
         q[:,i] = v/r[i,i];
     end
     return q
+end
+
+"""
+    ic_error(target,prediction)
+
+"""
+function ic_error(target,prediction)
+    error = zeros(size(target,1));
+    for i in 1:size(target,1)
+        if target[i] == 0.0
+            target[i] += eps();
+            prediction[i] += eps();
+        end
+        error[i] = (prediction[i]-target[i])/target[i];
+    end
+    return error
+end
+
+"""
+    average_ic_error(target,prediction)
+
+"""
+function average_ic_error(target,prediction)
+    return norm(prediction-target)/norm(target)
 end

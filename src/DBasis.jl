@@ -11,6 +11,7 @@ function basis_OpNN(trunk,x_locations,n)
 end
 
 """
+    orthonormal_check(basis;tol = 1e-15)
 
 Are the breaks really needed...?
 
@@ -126,28 +127,12 @@ function spectral_coefficients(basis,fnc)
     coefficients = zeros(typeof(basis[1]),size(basis,2));
     for i = 1:size(basis,2)
         if norm(basis[:,i]) > eps()
-            coefficients[i] = (basis[:,i]'*fnc)/(basis[:,i]'*basis[:,i]); #Could this hurt stability?
+            coefficients[i] = (basis[:,i]'*fnc)/(basis[:,i]'*basis[:,i]);
         else
             coefficients[i] = 0.0;
         end
     end
     # coefficients = basis\fnc;
-    return coefficients
-end
-
-"""
-    spectral_coefficients_integral(basis,fnc)
-
-"""
-function spectral_coefficients_integral(basis,fnc,x_locations)
-    coefficients = zeros(typeof(basis[1]),size(basis,2));
-    for i = 1:size(basis,2)
-        if norm(basis[:,i]) > eps()
-            coefficients[i] = simpson(x_locations,fnc.*conj(basis[:,i]))/simpson(x_locations,basis[:,i].*conj(basis[:,i]));
-        else
-            coefficients[i] = 0.0;
-        end
-    end
     return coefficients
 end
 
