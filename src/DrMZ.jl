@@ -1,14 +1,12 @@
 """
 This module contains the various libraries for generating data and training operator neural nets, finding the custom basis functions, solving PDEs using the custom basis functions, and construction of reduced order models.
 
-Make sure the location of this file is specified in your Julia LOAD_PATH if you
-are working locally.
+Eventually will be public on GitHub:
 
-Eventually will be public on GitHub
+To add the package from GitHub link: ] add http_link_to_GitHub_repository
 
-To add a location: push!(LOAD_PATH, "/Users/me/myjuliaprojects")
+To add the package from direct download from GitHub: ] add path_to_GitHub_repository_download_location
 
-Add this to your startup file also, "~/.julia/config/startup.jl"
 """
 module DrMZ
 
@@ -33,6 +31,7 @@ export build_basis_factors, second_derivative_product
 # export generate_opnn_results
 
 # Load required packages - only load functions that are used ##### Figure out how to add these if they don't exist...
+# To Do: Add all of these packages as dependencies...
 using FFTW: fft, ifft
 using Flux
 using Flux.Data: DataLoader
