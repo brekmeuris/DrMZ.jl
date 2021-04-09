@@ -12,6 +12,6 @@ This repository is currently private and in a pre-release state.
 
 ### Adding this package as an invited collaborator:
  
-To add the package from GitHub link using Julia REPL:''' ] add http_link_to_GitHub_repository '''
+To add the package from GitHub link using Julia REPL:``` ] add http_link_to_GitHub_repository ```
 
-To add the package from direct download from GitHub using Julia REPL:''' ] add path_to_GitHub_repository_download_location '''
+To add the package from direct download from GitHub using Julia REPL:``` ] add path_to_GitHub_repository_download_location ```
