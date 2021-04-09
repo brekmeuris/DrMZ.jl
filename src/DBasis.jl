@@ -127,12 +127,17 @@ function spectral_coefficients(basis,fnc)
     coefficients = zeros(typeof(basis[1]),size(basis,2));
     for i = 1:size(basis,2)
         if norm(basis[:,i]) > eps()
-            coefficients[i] = (basis[:,i]'*fnc)/(basis[:,i]'*basis[:,i]);
+            # coefficients[i] = (basis[:,i]'*fnc)/(basis[:,i]'*basis[:,i]);
+            inner_loop = 0.0;
+            for j = 1:size(basis,1)
+                inner_loop += fnc[j]*conj(basis[j,i]);
+            end
+            coefficients[i] = inner_loop/(basis[:,i]'*basis[:,i]);
         else
             coefficients[i] = 0.0;
         end
     end
-    # coefficients = basis\fnc;
+    # coefficients = (basis'*fnc); # Uses less memory but not consistently facter cpu times
     return coefficients
 end
 
@@ -141,11 +146,11 @@ end
 
 """
 function spectral_approximation(basis,coefficients)
-    approximation = zeros(typeof(basis[1]),size(basis,1));
+    approximation = zeros(typeof(basis[1]),size(basis,1)); # To Do: Extend usage of type of to other function which preallocate an array of zeros
     for i = 1:size(basis,2)
         approximation += coefficients[i]*basis[:,i]; # Do we need to scale this? 1/dL???
     end
-    # approximation = basis*coefficients;
+    # approximation = basis*coefficients; # Uses less memory but not consistently faster cpu times
     return approximation
 end
 
@@ -159,24 +164,42 @@ function spectral_matrix(basis,Dbasis)
 end
 
 """
-    generate_basis_solution(L1,L2,t_span,N,basis,initial_condition)
+    quadratic_nonlinear_triple_product(basis,Dbasis)
 
 """
-function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
-    u0 = spectral_coefficients(basis,initial_condition);
-    dL = abs(L2-L1);
-    Dbasis = fourier_diff(basis,N,dL);#;format="spectral");
-    Dmatrix = spectral_matrix(basis,Dbasis);
-    D2basis = fourier_diff(Dbasis,N,dL);#;format="spectral");
-    D2matrix = spectral_matrix(basis,D2basis);
-    p = [Dmatrix,D2matrix];
-    prob = ODEProblem(pde_function,u0,t_span,p);
-    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt)#,RK4(),reltol=1e-10,abstol=1e-10) # ODE45 like solver, saveat = 0.5
-    u_sol = zeros(size(sol.t,1),size(basis,1));
-    for i in 1:size(sol.t,1)
-        u_sol[i,:] = spectral_approximation(basis,sol.u[i]);
+function quadratic_nonlinear_triple_product(basis,Dbasis)
+    nonlinear_triple = zeros(size(basis,2),size(basis,2),size(basis,2);)
+    for k in 1:size(basis,2)
+        for l in 1:size(basis,2)
+            for m in 1:size(basis,2)
+                inner_loop = 0.0;
+                for p in 1:size(basis,1)
+                    inner_loop += basis[p,k]*Dbasis[p,l]*conj(basis[p,m]); # Faster and less memory intensive than using sum
+                end
+                nonlinear_triple[k,l,m] = inner_loop/(basis[:,m]'*basis[:,m]);
+                # nonlinear_triple[k,l,m] = sum(Dbasis[:,k].*basis[:,l].*conj(basis[:,m]));
+            end
+        end
     end
-    return u_sol
+    return nonlinear_triple
+end
+
+"""
+    second_derivative_product(basis,DDbasis)
+
+"""
+function second_derivative_product(basis,D2basis)
+    double_product = zeros(size(basis,2),size(basis,2))
+    for k in 1:size(basis,2)
+        for m in 1:size(basis,2)
+            inner_loop = 0.0;
+            for p in 1:size(basis,1)
+                inner_loop += D2basis[p,k]*conj(basis[p,m]); # Faster and less memory intensive than using sum
+            end
+            double_product[k,m] = inner_loop/(basis[:,m]'*basis[:,m]);
+        end
+    end
+    return double_product
 end
 
 """

@@ -257,6 +257,10 @@ function average_error(domain,error)
     return 1/(domain[end]-domain[1])*trapz(domain,error)
 end
 
+"""
+    gram_schmidt(A;sorted="false",tol = 1e-8)
+
+"""
 function gram_schmidt(A;sorted="false",tol = 1e-8)
 
     if sorted == "true"

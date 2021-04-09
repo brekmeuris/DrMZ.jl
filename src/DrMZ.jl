@@ -22,12 +22,12 @@ export generate_periodic_train_test_full, build_branch_model_reduced, build_trun
 export penalty, loss_all_MZ, train_model_MZ, train_model_MZ_coefficients
 
 # Export the functions for PDESolve.jl
-export advection_pde!, fourier_diff, fourier_two_diff, cheby_grid, cheby_diff_matrix, opnn_advection_pde!, advection_diffusion_pde!, opnn_advection_diffusion_pde!, generate_fourier_solution, kdv_pde!, quadratic_nonlinear, kdv_integrating_pde!, inviscid_burgers_pde!, generate_fourier_solution_IMEX, kdv_implicit_pde!, kdv_explicit_pde!, generate_fourier_solution_split, quadratic_nonlinear_pde!, viscous_burgers_pde!
-export opnn_advection_pde_full!, opnn_advection_diffusion_pde_full!
+export advection_pde!, fourier_diff, cheby_grid, cheby_diff_matrix, opnn_advection_pde!, advection_diffusion_pde!, opnn_advection_diffusion_pde!, generate_fourier_solution, kdv_pde!, quadratic_nonlinear, kdv_integrating_pde!, inviscid_burgers_pde!, generate_fourier_solution_IMEX, kdv_implicit_pde!, kdv_explicit_pde!, generate_fourier_solution_split, quadratic_nonlinear_pde!, viscous_burgers_pde!, opnn_viscous_burgers_pde!, generate_basis_solution, quadratic_nonlinear_opnn, generate_basis_solution_nonlinear, quadratic_nonlinear_opnn_pseudo
+export opnn_advection_pde_full!, opnn_advection_diffusion_pde_full!, second_derivative_opnn
 
 # Export the functions for DBasis.jl
-export basis_OpNN, orthonormal_check, build_basis, spectral_coefficients, spectral_coefficients_integral, spectral_approximation, spectral_matrix, generate_basis_solution, save_basis, spectral_truncation_error, spectral_redefined_error
-export build_basis_factors
+export basis_OpNN, orthonormal_check, build_basis, spectral_coefficients, spectral_coefficients_integral, spectral_approximation, spectral_matrix, save_basis, spectral_truncation_error, spectral_redefined_error, quadratic_nonlinear_triple_product
+export build_basis_factors, second_derivative_product
 
 # Export the functions for Results.jl
 # export generate_opnn_results

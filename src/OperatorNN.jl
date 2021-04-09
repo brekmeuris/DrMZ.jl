@@ -99,6 +99,10 @@ function train_model(branch,trunk,n_epoch,train_data,test_data,pde_function;lear
         loss_all_test[i+1] = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]);
         if i%2500 == 0
             save_model(branch,trunk,i,loss_all_train,loss_all_test,pde_function)
+            train_MSE = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]);
+            test_MSE = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]);
+            println("Train MSE $train_MSE")
+            println("Test MSE $test_MSE")
         end
     end
     return branch,trunk,loss_all_train,loss_all_test

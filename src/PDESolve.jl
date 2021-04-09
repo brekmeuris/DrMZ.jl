@@ -94,6 +94,8 @@ end
 """
     advection_diffusion_pde!(duhat,uhat,p,t_span)
 
+To Do: Overload for real initial condition which only evolves positive modes and complex initial conditions which evolves all modes
+
 """
 function advection_diffusion_pde!(duhat,uhat,p,t)
     N, dL = p;
@@ -180,6 +182,8 @@ end
 """
     quadratic_nonlinear!(uhat)
 
+To Do: Overload for real initial condition which only evolves positive modes and complex initial conditions which evolves all modes
+
 """
 function quadratic_nonlinear(uhat,N,dL,alpha)
     # N = Int(size(uhat,1)); # Instead of passing in N?
@@ -199,6 +203,8 @@ end
 """
     kdv_pde!(duhat,uhat,p,t_span)
 
+To Do: Overload for real initial condition which only evolves positive modes and complex initial conditions which evolves all modes
+
 """
 function kdv_pde!(duhat,uhat,p,t)
     N, dL = p;
@@ -211,21 +217,42 @@ function kdv_pde!(duhat,uhat,p,t)
 end
 
 """
+    opnn_viscous_burgers_pde!(du,u,p,t_span)
+
+"""
+function opnn_viscous_burgers_pde!(du,u,p,t)
+    # D2matrix, triple_product = p;
+    # double_product, triple_product = p;
+    double_product, basis, dL, N = p;
+    nu = 0.1;
+    # u_nonlinear = quadratic_nonlinear_opnn(u,triple_product);
+    u_nonlinear = quadratic_nonlinear_opnn_pseudo(basis,u,dL,N);
+    u_xx = second_derivative_opnn(u,double_product);
+    # du .= nu*D2matrix*u .- u_nonlinear;
+    du .= nu*u_xx .- u_nonlinear;
+
+end
+
+"""
     viscous_burgers_pde!(duhat,uhat,p,t_span)
+
+To Do: Overload for real initial condition which only evolves positive modes and complex initial conditions which evolves all modes
 
 """
 function viscous_burgers_pde!(duhat,uhat,p,t)
     N, dL = p;
     alpha = 1.0;
-    epsilon = 0.1;
+    nu = 0.1;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
     uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
-    duhat .= -epsilon*k.^2 .*uhat .- uhat_nonlinear;
+    duhat .= -nu*k.^2 .*uhat .- uhat_nonlinear;
 end
 
 """
     inviscid_burgers_pde!(duhat,uhat,p,t_span)
+
+To Do: Overload for real initial condition which only evolves positive modes and complex initial conditions which evolves all modes
 
 """
 function inviscid_burgers_pde!(duhat,uhat,p,t)
@@ -240,6 +267,8 @@ end
 """
     quadratic_nonlinear_pde!(duhat,uhat,p,t_span)
 
+To Do: Overload for real initial condition which only evolves positive modes and complex initial conditions which evolves all modes
+
 """
 function quadratic_nonlinear_pde!(duhat,uhat,p,t)
     N, dL = p;
@@ -248,4 +277,99 @@ function quadratic_nonlinear_pde!(duhat,uhat,p,t)
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
     duhat .= -uhat_nonlinear;
+end
+
+"""
+    quadratic_nonlinear_opnn(uhat)
+
+"""
+function quadratic_nonlinear_opnn(uhat,nonlinear_triple)
+    quadratic_nonlinear = zeros(size(uhat,1));
+    for m in 1:size(uhat,1)
+        inner_loop = 0.0;
+        for l in 1:size(uhat,1)
+            for k in 1:size(uhat,1)
+                inner_loop += uhat[k]*uhat[l]*nonlinear_triple[k,l,m];
+            end
+        end
+        quadratic_nonlinear[m] = inner_loop;
+    end
+    return quadratic_nonlinear
+end
+
+"""
+    quadratic_nonlinear_opnn_pseudo(basis,uhat)
+
+"""
+function quadratic_nonlinear_opnn_pseudo(basis,uhat,dL,N);
+    u = spectral_approximation(basis,uhat);
+    du = fourier_diff(u,N,dL);
+    udu = u.*du;
+    uduhat = spectral_coefficients(basis,udu);
+    return uduhat
+end
+
+"""
+    second_derivative_opnn(uhat)
+
+"""
+function second_derivative_opnn(uhat,double_product)
+    second_deriv = zeros(size(uhat,1));
+    for m in 1:size(uhat,1)
+        inner_loop = 0.0;
+            for k in 1:size(uhat,1)
+                inner_loop += uhat[k]*double_product[k,m];
+            end
+        second_deriv[m] = inner_loop;
+    end
+    return second_deriv
+end
+
+"""
+    generate_basis_solution(L1,L2,t_span,N,basis,initial_condition)
+
+"""
+function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
+    u0 = spectral_coefficients(basis,initial_condition);
+    dL = abs(L2-L1);
+    Dbasis = fourier_diff(basis,N,dL);#;format="spectral");
+    Dmatrix = spectral_matrix(basis,Dbasis);
+    D2basis = fourier_diff(Dbasis,N,dL);#;format="spectral");
+    D2matrix = spectral_matrix(basis,D2basis);
+    p = [Dmatrix,D2matrix];
+    prob = ODEProblem(pde_function,u0,t_span,p);
+    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt)#,RK4(),reltol=1e-10,abstol=1e-10) # ODE45 like solver, saveat = 0.5
+    u_sol = zeros(size(sol.t,1),size(basis,1));
+    for i in 1:size(sol.t,1)
+        u_sol[i,:] = spectral_approximation(basis,sol.u[i]);
+    end
+    return u_sol
+end
+
+"""
+    generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition)
+
+"""
+function generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
+    u0 = spectral_coefficients(basis,initial_condition);
+    dL = abs(L2-L1);
+
+    # j = reduce(vcat,[0:1:N-1]);
+    # x = (dL.*j)./N;
+
+    Dbasis = fourier_diff(basis,N,dL);#;format="spectral");
+    D2basis = fourier_diff(Dbasis,N,dL);#;format="spectral");
+    D2matrix = spectral_matrix(basis,D2basis);
+    triple_product = quadratic_nonlinear_triple_product(basis,Dbasis);
+    double_product = second_derivative_product(basis,D2basis);
+    # p = [D2matrix,triple_product];
+    # p = [double_product,triple_product];
+    p = [double_product,basis,dL,N];
+    prob = ODEProblem(pde_function,u0,t_span,p);
+    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt)#,RK4(),reltol=1e-10,abstol=1e-10) # ODE45 like solver, saveat = 0.5
+    u_sol = zeros(size(sol.t,1),size(basis,1));
+    for i in 1:size(sol.t,1)
+        u_sol[i,:] = spectral_approximation(basis,sol.u[i]);
+    end
+    return u_sol
 end
