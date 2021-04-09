@@ -3,6 +3,22 @@ uuid = "48533c53-1ac1-4690-9adc-eb6b74238378"
 authors = ["Brek Meuris"]
 version = "0.1.0"
 
+[deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
+DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+ToeplitzMatrices = "c751599d-da0a-543b-9d20-d0a503d91d24"
+
 [compat]
 julia = "1"
 

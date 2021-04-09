@@ -1,13 +1,3 @@
-"""
-This module contains the various libraries for generating data and training operator neural nets, finding the custom basis functions, solving PDEs using the custom basis functions, and construction of reduced order models.
-
-Eventually will be public on GitHub:
-
-To add the package from GitHub link: ] add http_link_to_GitHub_repository
-
-To add the package from direct download from GitHub: ] add path_to_GitHub_repository_download_location
-
-"""
 module DrMZ
 
 # Export the functions for General.jl
