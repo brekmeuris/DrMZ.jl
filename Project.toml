@@ -21,6 +21,15 @@ ToeplitzMatrices = "c751599d-da0a-543b-9d20-d0a503d91d24"
 
 [compat]
 julia = "1"
+BSON = "0.3.3"
+ColorSchemes = "3.11.0"
+DifferentialEquations = "6.10.1"
+FFTW = "1.1.1"
+Flux = "0.10.3"
+Interpolations = "0.13.1"
+Plots = "0.29.9"
+ProgressMeter = "1.5.0"
+ToeplitzMatrices = "0.6.3"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
