@@ -145,6 +145,24 @@ function generate_periodic_functions(x_locations,number_functions,length_scale)
 end
 
 """
+    generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
+
+"""
+function generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
+    values = rand(-1.0:(2.0/(number_functions*10)):1.0,(number_functions,2)); # alpha, beta parameters
+    initial_base = vcat(values,[0.0 0.0]);
+    if size(unique(initial_base,dims=2),1) != size(initial_base,1)
+        println("Duplicate multiplier sets or generating function included in data!")
+        return nothing
+    end
+    initial_conditions = zeros(size(x_locations,1),number_functions);
+    for i in 1:number_functions
+        initial_conditions[:,i] = values[i,1]*sin.(x_locations).+values[i,2]; # αsin(2πx)+β
+    end
+    return initial_conditions,
+end
+
+"""
     solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
 
 FINISH!!!
@@ -249,7 +267,7 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
     opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
     opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
 
-    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);#,shuffle = true);
+    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);
     test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
     return train_data, test_data
 end

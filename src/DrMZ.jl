@@ -5,7 +5,7 @@ export error_test_sse, error_test_rel, periodic_fill_domain, periodic_fill_solut
 export reduced_initial_condition_full
 
 # Export the functions for OperatorNN.jl
-export predict, loss_all, build_dense_model, build_branch_model, build_trunk_model, train_model, loss, exp_kernel_periodic, generate_periodic_functions, solution_extraction, generate_periodic_train_test, save_model, save_data, load_data, load_data_initial_conditions, build_trunk_model_layer_spec, load_data_train_test, generate_periodic_train_test_initial_conditions, load_data_initial_conditions, load_model, min_max_scaler, min_max_transform, standard_scaler, standard_transform, predict_min_max
+export predict, loss_all, build_dense_model, build_branch_model, build_trunk_model, train_model, loss, exp_kernel_periodic, generate_periodic_functions, solution_extraction, generate_periodic_train_test, save_model, save_data, load_data, load_data_initial_conditions, build_trunk_model_layer_spec, load_data_train_test, generate_periodic_train_test_initial_conditions, load_data_initial_conditions, load_model, min_max_scaler, min_max_transform, standard_scaler, standard_transform, predict_min_max, generate_sinusoidal_functions_2_parameter
 export generate_periodic_train_test_full, build_branch_model_reduced, build_trunk_model_reduced, nfan, ofeltype, epseltype, kaiming_uniform, glorot_uniform
 export penalty, loss_all_MZ, train_model_MZ, train_model_MZ_coefficients
 
