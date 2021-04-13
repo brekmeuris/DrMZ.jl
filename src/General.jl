@@ -231,6 +231,19 @@ function solution_spatial_sampling(x_prediction,x_target,solution)
 end
 
 """
+    solution_temporal_sampling(t_prediction,t_target,solution)
+
+"""
+function solution_temporal_sampling(t_prediction,t_target,solution)
+    ind = [findall(t_prediction[i].==t_target)[1] for i in 1:length(t_prediction)];
+    solution_reduced = zeros(size(ind,1),size(solution,2));
+    for i in 1:size(ind,1)
+        solution_reduced[i,:] = solution[ind[i],:]
+    end
+    return solution_reduced
+end
+
+"""
     fft_norm(solution)
 
 """

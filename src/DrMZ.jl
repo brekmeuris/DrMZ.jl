@@ -1,7 +1,7 @@
 module DrMZ
 
 # Export the functions for General.jl
-export error_test_sse, error_test_rel, periodic_fill_domain, periodic_fill_solution, solution_interpolation, reduced_initial_condition, mse_error, trapz, norm_rel_error, solution_spatial_sampling, fft_norm, ifft_norm, trapz1, simpson13, simpson38, simpson, average_error, gram_schmidt, ic_error, average_ic_error
+export error_test_sse, error_test_rel, periodic_fill_domain, periodic_fill_solution, solution_interpolation, reduced_initial_condition, mse_error, trapz, norm_rel_error, solution_spatial_sampling, fft_norm, ifft_norm, trapz1, simpson13, simpson38, simpson, average_error, gram_schmidt, ic_error, average_ic_error, solution_temporal_sampling
 export reduced_initial_condition_full
 
 # Export the functions for OperatorNN.jl
@@ -10,7 +10,7 @@ export generate_periodic_train_test_full, build_branch_model_reduced, build_trun
 export penalty, loss_all_MZ, train_model_MZ, train_model_MZ_coefficients
 
 # Export the functions for PDESolve.jl
-export advection_pde!, fourier_diff, cheby_grid, cheby_diff_matrix, opnn_advection_pde!, advection_diffusion_pde!, opnn_advection_diffusion_pde!, generate_fourier_solution, kdv_pde!, quadratic_nonlinear, kdv_integrating_pde!, inviscid_burgers_pde!, generate_fourier_solution_IMEX, kdv_implicit_pde!, kdv_explicit_pde!, generate_fourier_solution_split, quadratic_nonlinear_pde!, viscous_burgers_pde!, opnn_viscous_burgers_pde!, generate_basis_solution, quadratic_nonlinear_opnn, generate_basis_solution_nonlinear, quadratic_nonlinear_opnn_pseudo
+export advection_pde!, fourier_diff, cheby_grid, cheby_diff_matrix, opnn_advection_pde!, advection_diffusion_pde!, opnn_advection_diffusion_pde!, generate_fourier_solution, kdv_pde!, quadratic_nonlinear, kdv_integrating_pde!, inviscid_burgers_pde!, generate_fourier_solution_IMEX, kdv_implicit_pde!, kdv_explicit_pde!, generate_fourier_solution_split, quadratic_nonlinear_pde!, viscous_burgers_pde!, opnn_viscous_burgers_pde!, generate_basis_solution, quadratic_nonlinear_opnn, generate_basis_solution_nonlinear, quadratic_nonlinear_opnn_pseudo, opnn_inviscid_burgers_pde!, backward_upwind, forward_upwind, van_leer_limiter, gradient_ratio_backward_j, gradient_ratio_backward_jneg, gradient_ratio_forward_j, gradient_ratio_forward_jpos, backward_upwind_limited, forward_upwind_limited, generate_bwlimitersoupwind_solution
 export opnn_advection_pde_full!, opnn_advection_diffusion_pde_full!, second_derivative_opnn
 
 # Export the functions for DBasis.jl

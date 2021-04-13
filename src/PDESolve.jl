@@ -233,6 +233,23 @@ function opnn_viscous_burgers_pde!(du,u,p,t)
 
 end
 
+
+"""
+    opnn_inviscid_burgers_pde!(du,u,p,t_span)
+
+"""
+function opnn_inviscid_burgers_pde!(du,u,p,t)
+    # D2matrix, triple_product = p;
+    # double_product, triple_product = p;
+    double_product, basis, dL, N = p;
+    # u_nonlinear = quadratic_nonlinear_opnn(u,triple_product);
+    u_nonlinear = quadratic_nonlinear_opnn_pseudo(basis,u,dL,N);
+    # u_xx = second_derivative_opnn(u,double_product);
+    # du .= nu*D2matrix*u .- u_nonlinear;
+    du .= -u_nonlinear;
+
+end
+
 """
     viscous_burgers_pde!(duhat,uhat,p,t_span)
 
@@ -372,4 +389,145 @@ function generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_conditio
         u_sol[i,:] = spectral_approximation(basis,sol.u[i]);
     end
     return u_sol
+end
+
+"""
+    function backward_upwind(u_j,u_jneg,u_jnegg,nu)
+
+"""
+function backward_upwind(u_j,u_jneg,u_jnegg,nu)
+    ux = zeros(size(u_j,2));
+    ux = -nu.*(u_j-u_jneg)-(nu/2).*(1 .-nu).*(u_j-u_jneg)+(nu/2).*(1 .-nu).*(u_jneg-u_jnegg);
+    return ux
+end
+
+"""
+    function forward_upwind(u_j,u_jpos,u_jposs,nu)
+
+"""
+function forward_upwind(u_j,u_jpos,u_jposs,nu)
+    ux = zeros(size(u_j,2));
+    ux = -nu.*(u_jpos-u_j)-(nu/2).*(nu .+1).*(u_jpos-u_j)+(nu/2).*(nu .+1).*(u_jposs-u_jpos);
+    return ux
+end
+
+"""
+    function van_leer_limiter(r)
+
+"""
+function van_leer_limiter(r)
+    return (r .+abs.(r))./(1 .+r .+eps())
+end
+
+"""
+    function gradient_ratio_backward_j(u_j,u_jneg,u_jpos)
+
+"""
+function gradient_ratio_backward_j(u_j,u_jneg,u_jpos)
+    return (u_jpos .-u_j)./(u_j .-u_jneg);
+end
+
+"""
+    function gradient_ratio_backward_jneg(u_j,u_jneg,u_jnegg)
+
+"""
+function gradient_ratio_backward_jneg(u_j,u_jneg,u_jnegg)
+    return (u_j .-u_jneg)./(u_jneg .-u_jnegg);
+end
+
+"""
+    function gradient_ratio_forward_j(u_j,u_jneg,u_jpos)
+
+"""
+function gradient_ratio_forward_j(u_j,u_jneg,u_jpos)
+    return (u_j .-u_jneg)./(u_jpos .-u_j);
+end
+
+"""
+    function gradient_ratio_forward_jpos(u_j,u_jpos,u_jposs)
+
+"""
+function gradient_ratio_forward_jpos(u_j,u_jpos,u_jposs)
+    return (u_jpos .-u_j)./(u_jposs .-u_jpos);
+end
+
+"""
+    function backward_upwind_limited(u_j,u_jneg,u_jnegg,u_jpos,nu)
+
+"""
+function backward_upwind_limited(u_j,u_jneg,u_jnegg,u_jpos,nu)
+
+    r_j = gradient_ratio_backward_j(u_j,u_jneg,u_jpos);
+    r_jneg = gradient_ratio_backward_jneg(u_j,u_jneg,u_jnegg);
+    psi_j = van_leer_limiter(r_j);
+    psi_jneg = van_leer_limiter(r_jneg);
+
+    ux = zeros(size(u_j,2))
+    ux = -nu.*(u_j-u_jneg)-(nu/2).*(1 .-nu).*psi_j.*(u_j-u_jneg)+(nu/2).*(1 .-nu).*(psi_jneg).*(u_jneg-u_jnegg);
+    return ux
+end
+
+"""
+    function forward_upwind_limited(u_j,u_jpos,u_jposs,u_jneg,nu)
+
+"""
+function forward_upwind_limited(u_j,u_jpos,u_jposs,u_jneg,nu)
+
+    r_j = gradient_ratio_forward_j(u_j,u_jneg,u_jpos);
+    r_jpos = gradient_ratio_forward_jpos(u_j,u_jpos,u_jposs);
+    psi_j = van_leer_limiter(r_j);
+    psi_jpos = van_leer_limiter(r_jpos);
+
+    ux = zeros(size(u_j,2));
+    ux = -nu.*(u_jpos-u_j)-(nu/2).*(nu .+1).*psi_j.*(u_jpos-u_j)+(nu/2).*(nu .+1).*(psi_jpos).*(u_jposs-u_jpos);
+    return ux
+end
+
+"""
+    function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=1e-4)
+
+Second order limited upwind solution based on the Beam and Warming scheme
+
+"""
+function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=1e-4)
+    dL = abs(L2-L1);
+    # Set up periodic domain
+    j = reduce(vcat,[0:1:N-1]);
+    x = (dL.*j)./N;
+    dx = x[2]-x[1];
+    t = reduce(vcat,[0:dt:t_end]);
+    u_sol = zeros(size(t,1),N);
+    u_sol[1,:] = initial_condition;
+    for i in 1:(size(t,1)-1) # Loop over time domain
+        # Check CFL condition
+        dt_dx = abs(maximum(u_sol[i,:])*dt/dx);
+        if dt_dx > 1
+            println("Failed CFL Test!")
+            break;
+        end
+
+        # Preallocate arrays for each loop
+        uneg = zeros(size(u_sol,2));
+        upos = zeros(size(u_sol,2));
+        uxneg = zeros(size(u_sol,2));
+        uxpos = zeros(size(u_sol,2));
+
+        # Solve one step of upwind solution
+        upos = max.(u_sol[i,:],zeros(size(u_sol,2)));
+        uneg = min.(u_sol[i,:],zeros(size(u_sol,2)));
+        nupos = upos*(dt/dx); # CFL condition for each u, u > 0 - also controls which differencing scheme is used
+        nuneg = uneg*(dt/dx); # CFL condition for each u, u < 0 - also controls which differencing scheme is used
+
+        uxneg[1] = backward_upwind_limited(u_sol[i,1],u_sol[i,end],u_sol[i,end-1],u_sol[i,2],nupos[1]);
+        uxneg[2] = backward_upwind_limited(u_sol[i,2],u_sol[i,1],u_sol[i,end],u_sol[i,3],nupos[2]);
+        uxneg[3:end] = backward_upwind_limited(u_sol[i,3:end],u_sol[i,2:end-1],u_sol[i,1:end-2],vcat(u_sol[i,4:end],u_sol[i,1]),nupos[3:end]);
+
+        uxpos[end] = forward_upwind_limited(u_sol[i,end],u_sol[i,1],u_sol[i,2],u_sol[i,end-1],nuneg[end]);
+        uxpos[end-1] = forward_upwind_limited(u_sol[i,end-1],u_sol[i,end],u_sol[i,1],u_sol[i,end-2],nuneg[end-1]);
+        uxpos[1:end-2] = forward_upwind_limited(u_sol[i,1:end-2],u_sol[i,2:end-1],u_sol[i,3:end],vcat(u_sol[i,end],u_sol[i,1:end-3]),nuneg[1:end-2]);
+
+        u_sol[i+1,:] = u_sol[i,:] .+ (uxneg .+ uxpos);
+    end
+    dt_dx = abs(dt/dx);
+    return u_sol, dt_dx
 end
