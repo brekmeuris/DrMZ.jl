@@ -1,11 +1,7 @@
 """
     predict(branch,trunk,initial_condition,x_locations,t_values)
 
-Uses the trained operator neural net branch and trunk to predict solution at specified output locations.
-
-input: branch, trunk, initial condition, x locations, t values
-
-output: u(x,t)
+Predict solution ``u(t,x)`` at specified output locations using trained operator neural network `branch` and `trunk`.
 
 """
 function predict(branch,trunk,initial_condition,x_locations,t_values)
@@ -24,10 +20,6 @@ end
 
 Uses the trained operator neural net branch and trunk to predict solution at specified output locations when using min-max normalization
 
-input: branch, trunk, initial condition, x locations, t values
-
-output: u(x,t)
-
 """
 function predict_min_max(branch,trunk,initial_condition,x_locations,t_values,scale_object)
     u = zeros(size(t_values,1),size(x_locations,1));
@@ -43,11 +35,7 @@ end
 """
     loss_all(branch,trunk,initial_conditon,solution_location,target_value)
 
-Computes the MSE for a complete dataset, Flux.mse does not seem to compute the correct MSE when applied to multiple instances. Use Flux.mse for actual training purposes and this function when you want to quantify the performance of the trained network for all of the training or testing data.
-
-input: branch, trunk, initial condition, solution locations, target value
-
-output: error
+Compute the mean squared error (MSE) for a complete dataset.
 
 """
 function loss_all(branch,trunk,initial_condition,solution_location,target_value)
@@ -61,11 +49,13 @@ end
 """
     function build_dense_model(number_layers,neurons,activations)
 
-Builds a FFNN of Flux dense layers
+Build a feedforward neural network (FFNN) consisting of `number_layers` of Flux dense layers for the specified number of `neurons` and `activations`.
 
-input: number of layers, array consisting of tuples (layer input size, layer output size), and array of activation functions
-
-output: Flux model consisting of chained dense layers piped to output Float64
+# Examples
+```julia-repl
+julia> build_dense_model(2,[(128,128),(128,128)],[relu,relu])
+Chain(Dense(128, 128, NNlib.relu), Dense(128, 128, NNlib.relu))
+```
 
 """
 function build_dense_model(number_layers,neurons,activations)
@@ -76,13 +66,7 @@ end
 """
     train_model(branch,trunk,n_epoch,train_data;learning_rate=0.00001)
 
-Trains the operator neural network using the mean squared error and ADAM optimization
-
-input: branch, trunk, number of training epochs, training data # UPDATE
-
-output: trained branch, trained trunk, MSE loss for each epoch # UPDATE
-
-To Do : ADD A PARAMETER TO APPLY NORMALIZATION OR SCALING...
+Train the operator neural network using the mean squared error (MSE) and ADAM optimization for `n_epochs` epochs.
 
 """
 function train_model(branch,trunk,n_epoch,train_data,test_data,pde_function;learning_rate=1e-5)
@@ -91,8 +75,8 @@ function train_model(branch,trunk,n_epoch,train_data,test_data,pde_function;lear
     opt = ADAM(learning_rate);
     loss_all_train = Array{Float64}(undef,n_epoch+1,1);
     loss_all_test = Array{Float64}(undef,n_epoch+1,1);
-    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]); # To Do update to trend test error as well
-    loss_all_test[1] = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]); # To Do update to trend test error as well
+    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]);
+    loss_all_test[1] = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]);
     @showprogress 1 "Training the model..." for i in 1:n_epoch
         Flux.train!(loss,par,train_data,opt);
         loss_all_train[i+1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]);
@@ -111,11 +95,7 @@ end
 """
     function exp_kernel_periodic(x_locations;length_scale=0.5)
 
-Covariance kernel for radial basis function (GRF) and periodic IC f(sin^2(πx))
-
-input: x locations, length scale
-
-output: Σ covariance matrix
+Covariance kernel for radial basis function (GRF) and periodic IC ``f(sin^2(πx))``.
 
 """
 function exp_kernel_periodic(x_locations,length_scale)
@@ -125,13 +105,9 @@ function exp_kernel_periodic(x_locations,length_scale)
 end
 
 """
-    generate_periodic_functions(x_locations;length_scale=0.5)
+    generate_periodic_functions(x_locations,number_functions,length_scale)
 
-Generates a specified number of random periodic functions using the exp_kernel_periodic function and a multivariate distribution
-
-input: x locations, number of functions
-
-output: random periodic functions
+Generate a specified `number_functions` of random periodic functions using the `exp_kernel_periodic` function and a multivariate distribution.
 
 """
 function generate_periodic_functions(x_locations,number_functions,length_scale)
@@ -146,6 +122,8 @@ end
 
 """
     generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
+
+Generate a specified `number_functions` of random periodic functions for the distribution ``αsin(x)+β`` for ``α ∈ [-1,1]`` and ``β ∈ [-1,1]``
 
 """
 function generate_sinusoidal_functions_2_parameter(x_locations,number_functions)

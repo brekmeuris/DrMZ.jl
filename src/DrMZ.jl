@@ -14,14 +14,12 @@ export advection_pde!, fourier_diff, cheby_grid, cheby_diff_matrix, opnn_advecti
 export opnn_advection_pde_full!, opnn_advection_diffusion_pde_full!, second_derivative_opnn
 
 # Export the functions for DBasis.jl
-export basis_OpNN, orthonormal_check, build_basis, spectral_coefficients, spectral_coefficients_integral, spectral_approximation, spectral_matrix, save_basis, spectral_truncation_error, spectral_redefined_error, quadratic_nonlinear_triple_product
-export build_basis_factors, second_derivative_product
+export basis_OpNN, orthonormal_check, build_basis, spectral_coefficients, spectral_coefficients_integral, spectral_approximation, spectral_matrix, save_basis, spectral_truncation_error, spectral_redefined_error, quadratic_nonlinear_triple_product, second_derivative_product, build_basis_redefinition
 
 # Export the functions for Results.jl
 # export generate_opnn_results
 
 # Load required packages - only load functions that are used ##### Figure out how to add these if they don't exist...
-# To Do: Add all of these packages as dependencies...
 using FFTW: fft, ifft
 using Flux
 using Flux.Data: DataLoader
