@@ -95,7 +95,7 @@ end
 """
     function exp_kernel_periodic(x_locations;length_scale=0.5)
 
-Covariance kernel for radial basis function (GRF) and periodic IC ``f(sin^2(πx))``.
+Covariance kernel for radial basis function (GRF) and periodic IC ``f( sin^2(πx))``.
 
 """
 function exp_kernel_periodic(x_locations,length_scale)
@@ -123,7 +123,7 @@ end
 """
     generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
 
-Generate a specified `number_functions` of random periodic functions for the distribution ``αsin(x)+β`` for ``α ∈ [-1,1]`` and ``β ∈ [-1,1]``
+Generate a specified `number_functions` of random periodic functions for the distribution ``α sin(x)+β`` for ``α ∈ [-1,1]`` and ``β ∈ [-1,1]``
 
 """
 function generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
@@ -143,7 +143,7 @@ end
 """
     solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
 
-FINISH!!!
+Extract the specified `number_solution_points` randomly from the ``u(t,x)` solution space.
 
 """
 function solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
@@ -253,7 +253,7 @@ end
 """
     save_model(branch,trunk,n_epoch,loss_all_train,loss_all_test,pde_function)
 
-FINISH!!!
+Save the trained `branch` and `trunk` neural networks and the training and testing loss history.
 
 """
 function save_model(branch,trunk,n_epoch,loss_all_train,loss_all_test,pde_function)
@@ -264,9 +264,9 @@ function save_model(branch,trunk,n_epoch,loss_all_train,loss_all_test,pde_functi
 end
 
 """
-    load_model(branch,trunk,n_epoch)
+    load_model(n_epoch,pde_function)
 
-FINISH!!!
+Load the trained `branch` and `trunk` neural networks.
 
 """
 function load_model(n_epoch,pde_function)
@@ -276,12 +276,12 @@ function load_model(n_epoch,pde_function)
 end
 
 """
-    save_data(train_data,test_data,u_test,u_train,n_epoch,number_solution_points,loss_all_train)
+    save_data(train_data,test_data,number_train_functions,number_test_functions,number_solution_points,pde_function)
 
-FINISH!!!
+Save the `train_data` and `test_data`.
 
 """
-function save_data(train_data,test_data,n_epoch,number_train_functions,number_test_functions,number_solution_points,pde_function)
+function save_data(train_data,test_data,number_train_functions,number_test_functions,number_solution_points,pde_function)
     train_ic = train_data.data[1];
     train_loc = train_data.data[2];
     train_sol = train_data.data[3];
@@ -297,9 +297,9 @@ function save_data(train_data,test_data,n_epoch,number_train_functions,number_te
 end
 
 """
-    load_data(n_epoch,number_train_functions,number_test_functions)
+    load_data(n_epoch,number_train_functions,number_test_functions,pde_function)
 
-FINISH!!!
+Load the trained `branch` and `trunk` neural networks along with the `train_data` and `test_data`.
 
 """
 function load_data(n_epoch,number_train_functions,number_test_functions,pde_function)
@@ -317,7 +317,7 @@ end
 """
     load_data_train_test(number_train_functions,number_test_functions,pde_function)
 
-FINISH!!!
+Load the `train_data` and `test_data`.
 
 """
 function load_data_train_test(number_train_functions,number_test_functions,pde_function)

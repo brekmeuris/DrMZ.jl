@@ -1,11 +1,7 @@
 """
     advection_pde!(duhat,uhat,k,t)
 
-RHS for the advection equation for numerical integration in Fourier space.
-
-input: dû/dt, û, N, delta L, t_span
-
-output: dû/dt
+RHS for the advection equation ``u_t = - u_x`` for numerical integration in Fourier space.
 
 """
 function advection_pde!(duhat,uhat,p,t)
@@ -486,7 +482,7 @@ end
 """
     function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=1e-4)
 
-Second order limited upwind solution based on the Beam and Warming scheme
+Generate second order limited upwind solution for the inviscid Burgers equation ``u_t = -u u_x`` based on the Beam and Warming scheme with a Van Leer limiter.
 
 """
 function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=1e-4)
