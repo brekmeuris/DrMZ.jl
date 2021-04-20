@@ -120,7 +120,6 @@ end
 """
 function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
     # Transform random initial condition to Fourier domain
-    # uhat0 = fft(initial_condition);
     uhat0 = fft_norm(initial_condition);
     dL = abs(L2-L1);
 
@@ -134,8 +133,7 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
 
     u_sol = zeros(Int(t_length),N);
     for j in 1:size(sol.t,1) # Reshape output and plot
-        # u_sol[j,:] = real.(ifft(sol.u[j])); # u[t,x,IC]
-        u_sol[j,:] = real.(ifft_norm(sol.u[j])); # u[t,x,IC]
+        u_sol[j,:] = real.(ifft_norm(sol.u[j]));
     end
     return u_sol
 end
@@ -269,21 +267,6 @@ To Do: Overload for real initial condition which only evolves positive modes and
 
 """
 function inviscid_burgers_pde!(duhat,uhat,p,t)
-    N, dL = p;
-    alpha = 1.0;
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
-    uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
-    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
-    duhat .= -uhat_nonlinear;
-end
-
-"""
-    quadratic_nonlinear_pde!(duhat,uhat,p,t_span)
-
-To Do: Overload for real initial condition which only evolves positive modes and complex initial conditions which evolves all modes
-
-"""
-function quadratic_nonlinear_pde!(duhat,uhat,p,t)
     N, dL = p;
     alpha = 1.0;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers

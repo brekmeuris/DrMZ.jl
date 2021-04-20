@@ -8,17 +8,17 @@ makedocs(;
     authors="Brek Meuris",
     repo="https://github.com/brekmeuris/DrMZ.jl/blob/{commit}{path}#{line}",
     sitename="DrMZ.jl",
-    format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://brekmeuris.github.io/DrMZ.jl",
-        assets=String[],
-    ),
+    # format=Documenter.HTML(;
+    #     prettyurls=get(ENV, "CI", "false") == "true",
+    #     canonical="https://brekmeuris.github.io/DrMZ.jl",
+    #     assets=String[],
+    #),
     pages=[
         "Home" => "index.md",
     ],
 )
 
-deploydocs(;
-    repo="github.com/brekmeuris/DrMZ.jl",
-    devbranch="main",
-)
+# deploydocs(;
+#     repo="github.com/brekmeuris/DrMZ.jl",
+#     devbranch="main",
+#)
