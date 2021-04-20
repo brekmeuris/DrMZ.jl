@@ -18,7 +18,8 @@ makedocs(;
     ],
 )
 
-# deploydocs(;
-#     repo="github.com/brekmeuris/DrMZ.jl",
-#     devbranch="main",
-#)
+deploydocs(;
+    repo="github.com/brekmeuris/DrMZ.jl",
+    devbranch="main",
+    branch="gh-pages",
+)
