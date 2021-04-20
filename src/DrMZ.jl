@@ -29,15 +29,15 @@ using Distributions: MvNormal
 using LinearAlgebra: Symmetric, norm, eigmin, I, qr, diagm, svd, lq, Diagonal
 using Random: randperm, AbstractRNG
 using Random
-using ColorSchemes # Cut this one down...
+# using ColorSchemes # Cut this one down...
 using DifferentialEquations
 using Interpolations#: LinearInterpolation, interpolate
 using BSON: @save
 using BSON: @load
 using Printf
-using Plots; pyplot() # Is this needed?
+# using Plots; pyplot() # Is this needed?
 using ToeplitzMatrices
-using Plots.PlotMeasures
+# using Plots.PlotMeasures
 using Statistics: mean, std
 
 # Load functions
