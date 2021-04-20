@@ -144,9 +144,9 @@ version = "3.27.0"
 
 [[Conda]]
 deps = ["JSON", "VersionParsing"]
-git-tree-sha1 = "6231e40619c15148bcb80aa19d731e629877d762"
+git-tree-sha1 = "299304989a5e6473d985212c28928899c74e9421"
 uuid = "8f4d0f93-b110-5947-807f-2305c1781a2d"
-version = "1.5.1"
+version = "1.5.2"
 
 [[ConsoleProgressMonitor]]
 deps = ["Logging", "ProgressMeter"]
@@ -281,9 +281,9 @@ version = "0.8.4"
 
 [[ExponentialUtilities]]
 deps = ["LinearAlgebra", "Printf", "Requires", "SparseArrays"]
-git-tree-sha1 = "712cb5af8db62836913970ee035a5fa742986f00"
+git-tree-sha1 = "3546dbb394f7b95d805d6b1d9ccf63310ba59557"
 uuid = "d4d017d3-3776-5f7e-afef-a10c40355c18"
-version = "1.8.1"
+version = "1.8.2"
 
 [[FFMPEG]]
 deps = ["BinaryProvider", "Libdl"]
@@ -414,6 +414,11 @@ git-tree-sha1 = "d9c6e1efcaa6c2fcd043da812a62b3e489a109a3"
 uuid = "929cbde3-209d-540e-8aea-75f648917ca0"
 version = "1.7.0"
 
+[[LaTeXStrings]]
+git-tree-sha1 = "c7f1c695e06c01b95a67f0cd1d34994f3e7db104"
+uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+version = "1.2.1"
+
 [[LeftChildRightSiblingTrees]]
 deps = ["AbstractTrees"]
 git-tree-sha1 = "71be1eb5ad19cb4f61fa8c73395c0338fd092ae0"
@@ -441,6 +446,12 @@ version = "7.1.1"
 [[LinearAlgebra]]
 deps = ["Libdl"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[[LogExpFunctions]]
+deps = ["DocStringExtensions"]
+git-tree-sha1 = "9809b844f0ff853f0620e0cac7a712e1818671e5"
+uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
+version = "0.2.1"
 
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -597,6 +608,18 @@ git-tree-sha1 = "6e9c89cba09f6ef134b00e10625590746ba1e036"
 uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
 version = "1.5.0"
 
+[[PyCall]]
+deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
+git-tree-sha1 = "169bb8ea6b1b143c5cf57df6d34d022a7b60c6db"
+uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+version = "1.92.3"
+
+[[PyPlot]]
+deps = ["Colors", "LaTeXStrings", "PyCall", "Sockets", "Test", "VersionParsing"]
+git-tree-sha1 = "67dde2482fe1a72ef62ed93f8c239f947638e5a2"
+uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+version = "2.9.0"
+
 [[QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
 git-tree-sha1 = "12fbe86da16df6679be7521dfb39fbc861e1dc7b"
@@ -733,10 +756,10 @@ uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.33.5"
 
 [[StatsFuns]]
-deps = ["Rmath", "SpecialFunctions"]
-git-tree-sha1 = "ced55fd4bae008a8ea12508314e725df61f0ba45"
+deps = ["LogExpFunctions", "Rmath", "SpecialFunctions"]
+git-tree-sha1 = "30cd8c360c54081f806b1ee14d2eecbef3c04c49"
 uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
-version = "0.9.7"
+version = "0.9.8"
 
 [[SteadyStateDiffEq]]
 deps = ["DiffEqBase", "DiffEqCallbacks", "LinearAlgebra", "NLsolve", "Reexport"]
