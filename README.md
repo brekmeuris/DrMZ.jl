@@ -6,7 +6,7 @@
 [![Coverage](https://codecov.io/gh/brekmeuris/DrMZ.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/brekmeuris/DrMZ.jl)
 
 
-This module, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks, finding custom basis functions, solving PDEs using the custom basis functions, and construction of reduced order models.
+This package, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks, finding custom basis functions, solving PDEs using the custom basis functions, and construction of reduced order models.
 
 This repository is currently private and in a pre-release state.
 
@@ -19,3 +19,13 @@ To add the package from GitHub link using Julia REPL:
 To add the package from direct download from GitHub using Julia REPL:
 
 ``` ] add path_to_GitHub_repository_download_location ```
+
+## Accessing the in-progress documentation:
+
+link to index.md in root
+
+## Running an example operator neural network:
+
+Under the ```Example``` directory there is an example script for ... advection equation. The example script generates the data set and trains the neural network. TO run this script, there are several additional packages that need to be installed in addition to the ```DrMZ``` package. 
+
+``` ] add Parameters ``` Can you do multiple at once...?
