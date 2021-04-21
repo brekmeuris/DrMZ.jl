@@ -22,7 +22,7 @@ To add the package from direct download from GitHub using Julia REPL:
 
 ## Accessing the in-progress documentation:
 
-[Documentation](index.md)
+[Documentation](index.md) complete with working links to the source.
 
 This will eventually be hosted via GitHub Pages once the repository is made public.
 
