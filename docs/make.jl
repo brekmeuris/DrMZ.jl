@@ -1,5 +1,6 @@
 using DrMZ
 using Documenter
+using DocumenterMarkdown
 
 DocMeta.setdocmeta!(DrMZ, :DocTestSetup, :(using DrMZ); recursive=true)
 
@@ -12,7 +13,8 @@ makedocs(;
     #     prettyurls=get(ENV, "CI", "false") == "true",
     #     canonical="https://brekmeuris.github.io/DrMZ.jl",
     #     assets=String[],
-    ),
+    #),
+    format = Markdown(),
     pages=[
         "Home" => "index.md",
     ],
