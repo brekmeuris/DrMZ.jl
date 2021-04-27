@@ -28,6 +28,6 @@ This will eventually be hosted via GitHub Pages once the repository is made publ
 
 ## Running an example operator neural network:
 
-Under the ```Example``` directory there is an example script for ... advection equation. The example script generates the data set and trains the neural network. TO run this script, there are several additional packages that need to be installed in addition to the ```DrMZ``` package. 
+Under the ```example\advection_advection_diffusion_opnn``` directory there is an example script for ```advection_advection_diffusion_opnn.jl```... advection equation. The example script generates the data set and trains the neural network. TO run this script, there are several additional packages that need to be installed in addition to the ```DrMZ``` package. 
 
 ``` ] add Parameters ``` Can you do multiple at once...?
