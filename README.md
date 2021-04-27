@@ -28,6 +28,8 @@ This will eventually be hosted via GitHub Pages once the repository is made publ
 
 ## Running an example operator neural network:
 
-Under the ```example\advection_advection_diffusion_opnn``` directory there is an example script for ```advection_advection_diffusion_opnn.jl```... advection equation. The example script generates the data set and trains the neural network. TO run this script, there are several additional packages that need to be installed in addition to the ```DrMZ``` package. 
+Under the ```examples\advection_advection_diffusion_opnn``` directory there is an example script for the advection and advection-diffusion equation. The example script, ```advection_advection_diffusion_opnn.jl```, generates the data set, trains the neural network, and outputs a few results. To run this script, there are several additional packages that need to be installed in addition to the ```DrMZ``` package. 
 
-``` ] add Parameters ``` Can you do multiple at once...?
+``` ] add Parameters, LaTeXStrings, ColorSchemes, Plots, PyPlot ```
+
+In this same folder there is also example data for a model trained for 25000 epochs. If you only want to look at the data, in the script just comment out lines 125 and 126.
