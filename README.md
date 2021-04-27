@@ -22,7 +22,9 @@ To add the package from direct download from GitHub using Julia REPL:
 
 ## Accessing the in-progress documentation:
 
-link to index.md in root
+[Documentation](index.md) complete with working links to the source.
+
+This will eventually be hosted via GitHub Pages once the repository is made public.
 
 ## Running an example operator neural network:
 
