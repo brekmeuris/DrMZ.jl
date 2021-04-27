@@ -123,10 +123,9 @@ function quadratic_nonlinear_triple_product(basis,Dbasis)
             for m in 1:size(basis,2)
                 inner_loop = 0.0;
                 for p in 1:size(basis,1)
-                    inner_loop += basis[p,k]*Dbasis[p,l]*conj(basis[p,m]); # Faster and less memory intensive than using sum
+                    inner_loop += basis[p,k]*Dbasis[p,l]*conj(basis[p,m]);
                 end
                 nonlinear_triple[k,l,m] = inner_loop/(basis[:,m]'*basis[:,m]);
-                # nonlinear_triple[k,l,m] = sum(Dbasis[:,k].*basis[:,l].*conj(basis[:,m]));
             end
         end
     end
@@ -143,7 +142,7 @@ function second_derivative_product(basis,D2basis)
         for m in 1:size(basis,2)
             inner_loop = 0.0;
             for p in 1:size(basis,1)
-                inner_loop += D2basis[p,k]*conj(basis[p,m]); # Faster and less memory intensive than using sum
+                inner_loop += D2basis[p,k]*conj(basis[p,m]);
             end
             double_product[k,m] = inner_loop/(basis[:,m]'*basis[:,m]);
         end

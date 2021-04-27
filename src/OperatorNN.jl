@@ -95,7 +95,7 @@ end
 """
     function exp_kernel_periodic(x_locations;length_scale=0.5)
 
-Covariance kernel for radial basis function (GRF) and periodic IC ``f( sin^2(πx))``.
+Covariance kernel for radial basis function (GRF) and periodic IC \$f(\\sin^2(πx))\$.
 
 """
 function exp_kernel_periodic(x_locations,length_scale)
@@ -123,7 +123,7 @@ end
 """
     generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
 
-Generate a specified `number_functions` of random periodic functions for the distribution ``α sin(x)+β`` for ``α ∈ [-1,1]`` and ``β ∈ [-1,1]``
+Generate a specified `number_functions` of random periodic functions for the distribution \$α \\sin(x)+β\$ for ``α ∈ [-1,1]`` and ``β ∈ [-1,1]``.
 
 """
 function generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
@@ -143,7 +143,7 @@ end
 """
     solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
 
-Extract the specified `number_solution_points` randomly from the ``u(t,x)` solution space.
+Extract the specified `number_solution_points` randomly from the ``u(t,x)`` solution space.
 
 """
 function solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
@@ -174,9 +174,9 @@ function solution_extraction(x_locations,t_values,solution,initial_condition,num
 end
 
 """
-    generate_periodic_train_test(L1,L2,t_span,number_sensors,number_test_functions,number_train_functions,number_solution _points;length_scale=0.5,batch=number_solution_points,dt=1e-3)
+    generate_periodic_train_test(L1,L2,t_span,number_sensors,number_test_functions,number_train_functions,number_solution_points,pde_function_handle;length_scale=0.5,batch=number_solution_points,dt=1e-3,domain="periodic"))
 
-FINISH!!!
+Generate the training and testing data for a specified `pde_function_handle` for periodic boundary conditions using a Fourier spectral method.
 
 """
 function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;length_scale=0.5,batch=number_solution_points,dt_size=1e-3,domain="periodic")
@@ -333,7 +333,7 @@ end
 """
     load_data_initial_conditions(number_train_functions,number_test_functions)
 
-FINISH!!!
+Load the initial conditions from the `train_data` and `test_data`.
 
 """
 function load_data_initial_conditions(number_train_functions,number_test_functions,pde_function)
@@ -345,6 +345,8 @@ end
 """
     min_max_scaler(x;dim = 2)
 
+Compute the required scaler to shift the features to a given range.
+
 """
 function min_max_scaler(x;dim = 2)
     scaler = 1.0 ./ (maximum(x,dims=dim) .- minimum(x,dims=dim));
@@ -354,6 +356,8 @@ end
 
 """
     min_max_transform(x,scale_object;min = 0,max = 1)
+
+Apply [`min_max_scaler`](@ref) to shift the features.
 
 """
 function min_max_transform(x,scale_object;min = 0,max = 1)
@@ -368,6 +372,8 @@ end
 """
     standard_scaler(x;dim=2)
 
+Compute the required scaler to shift the features to have zero mean and unit variance.
+
 """
 function standard_scaler(x;dim=2)
     x_mean = mean(x,dims=dim);
@@ -377,6 +383,8 @@ end
 
 """
     standard_transform(x,scale_object)
+
+Apply [`standard_scaler`](@ref) to shift the features.
 
 """
 function standard_transform(x,scale_object)
