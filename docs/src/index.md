@@ -4,9 +4,12 @@ CurrentModule = DrMZ
 
 # DrMZ
 
-```@index
+```@contents
 ```
 
 ```@autodocs
 Modules = [DrMZ]
+```
+
+```@index
 ```
