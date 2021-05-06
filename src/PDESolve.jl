@@ -281,6 +281,8 @@ end
 """
     function gradient_ratio_backward_j(u_j,u_jneg,u_jpos)
 
+Compute the backward gradient ratio at point \$i\$.
+
 """
 function gradient_ratio_backward_j(u_j,u_jneg,u_jpos)
     return (u_jpos .-u_j)./(u_j .-u_jneg);
