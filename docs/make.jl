@@ -1,6 +1,6 @@
 using DrMZ
 using Documenter
-using DocumenterMarkdown
+# using DocumenterMarkdown
 
 DocMeta.setdocmeta!(DrMZ, :DocTestSetup, :(using DrMZ); recursive=true)
 
