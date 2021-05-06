@@ -371,7 +371,7 @@ end
 """
     function shifted_nodes(a,b,xd)
 
-Compute the shifted nodes for Gauss-Legendre quadrature from \$ \\int_{-1}^1 \$ to \$ \\int_a^b \$.
+Compute the shifted nodes for Gauss-Legendre quadrature from \$\\int_{-1}^1 \$ to \$ \\int_a^b\$.
 
 """
 function shifted_nodes(a,b,xd)
@@ -381,7 +381,7 @@ end
 """
     function gauss_quad(a,b,func,number_points)
 
-Compute the integral using Gauss-Legendre quadrature for the interval \$ \\int_a^b \$ for a given `func` using a specified `number_points`.
+Compute the integral using Gauss-Legendre quadrature for the interval \$\\int_a^b\$ for a given `func` using a specified `number_points`.
 
 """
 function gauss_quad(a,b,func,number_points)

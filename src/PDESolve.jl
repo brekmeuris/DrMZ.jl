@@ -235,7 +235,7 @@ end
 """
     function central_difference(u_j,u_jpos,u_jneg,mu)
 
-Compute the second order central difference for the viscous term of the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$. `mu` is equal to \$ \\frac{\\nu *\\Delta t}{\\Delta x^2}.
+Compute the second order central difference for the viscous term of the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$. `mu` is equal to \$ \\frac{\\nu *\\Delta t}{\\Delta x^2}\$.
 
 """
 function central_difference(u_j,u_jpos,u_jneg,mu)
@@ -392,7 +392,9 @@ function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=
 end
 
 """
+    function generate_bwlimitersoupwind_viscous_solution(L1,L2,t_end,N,initial_condition;dt=1e-4,nu=0.1)
 
+Generate second order solution for the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$ based on the Beam and Warming second order upwind with a Van Leer limiter for the convective term and a second order central differnce for the diffusive term. `nu` is the viscosity.
 
 """
 function generate_bwlimitersoupwind_viscous_solution(L1,L2,t_end,N,initial_condition;dt=1e-4,nu=0.1)
