@@ -23,7 +23,7 @@ makedocs(;
 # FOR HTML
 deploydocs(;
     repo="github.com/brekmeuris/DrMZ.jl",
-#     # devbranch="main",
+    devbranch="main",
 #     # devurl="docs",
     branch="gh-pages",
 )
