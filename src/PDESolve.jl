@@ -5,7 +5,7 @@ RHS for the advection equation ``u_t = - u_x`` for numerical integration in Four
 
 """
 function advection_pde!(duhat,uhat,p,t)
-    N, dL = p;
+    N, dL, nu = p;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -im*k.*uhat;
@@ -18,8 +18,7 @@ RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numeric
 
 """
 function advection_diffusion_pde!(duhat,uhat,p,t)
-    N, dL = p;
-    nu = 0.1;
+    N, dL, nu = p;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -im*k.*uhat + nu*(im*k).^2 .*uhat;
@@ -32,9 +31,8 @@ RHS for the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$ for numerical
 
 """
 function viscous_burgers_pde!(duhat,uhat,p,t)
-    N, dL = p;
+    N, dL, nu = p;
     alpha = 1.0;
-    nu = 0.1;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
     uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
@@ -48,7 +46,7 @@ RHS for the inviscid Burgers equation \$u_t = - u u_x\$ for numerical integratio
 
 """
 function inviscid_burgers_pde!(duhat,uhat,p,t)
-    N, dL = p;
+    N, dL, nu = p;
     alpha = 1.0;
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
@@ -83,7 +81,7 @@ RHS for the advection equation ``u_t = - u_x`` for numerical integration in the 
 
 """
 function opnn_advection_pde!(du,u,p,t)
-    Dmatrix, D2matrix = p;
+    Dmatrix, D2matrix, nu = p;
     du .= -Dmatrix*u;
 end
 
@@ -94,8 +92,7 @@ RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numeric
 
 """
 function opnn_advection_diffusion_pde!(du,u,p,t)
-    Dmatrix, D2matrix = p;
-    nu = 0.1;
+    Dmatrix, D2matrix, nu = p;
     du .= -Dmatrix*u .+ nu*D2matrix*u;
 end
 
@@ -106,15 +103,9 @@ RHS for the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$ for numerical
 
 """
 function opnn_viscous_burgers_pde!(du,u,p,t)
-    # D2matrix, triple_product = p;
-    # double_product, triple_product = p;
-    double_product, basis, dL, N = p;
-    nu = 0.1;
+    D2matrix, basis, dL, N, nu = p;
     u_nonlinear = quadratic_nonlinear_opnn_pseudo(basis,u,dL,N);
-    u_xx = second_derivative_opnn(u,double_product);
-    # du .= nu*D2matrix*u .- u_nonlinear;
-    du .= nu*u_xx .- u_nonlinear;
-
+    du .= nu*D2matrix*u .- u_nonlinear;
 end
 
 """
@@ -124,9 +115,7 @@ RHS for the inviscid Burgers equation \$u_t = - u u_x\$ for numerical integratio
 
 """
 function opnn_inviscid_burgers_pde!(du,u,p,t)
-    # D2matrix, triple_product = p;
-    # double_product, triple_product = p;
-    double_product, basis, dL, N = p;
+    D2matrix, basis, dL, N, nu = p;
     u_nonlinear = quadratic_nonlinear_opnn_pseudo(basis,u,dL,N);
     du .= -u_nonlinear;
 
@@ -167,36 +156,18 @@ function quadratic_nonlinear_opnn_pseudo(basis,uhat,dL,N);
 end
 
 """
-    second_derivative_opnn(uhat,double_product)
-
-Compute the sum \$\\sum_{k=1}^N u_k \\sum_{j=0}^{N-1} \\phi_{jk}^{''} \\phi_{jm}^{*}\$ resulting from the second derivative \$u_xx\$ in custom basis space.
-
-"""
-function second_derivative_opnn(uhat,double_product)
-    second_deriv = zeros(size(uhat,1));
-    for m in 1:size(uhat,1)
-        inner_loop = 0.0;
-            for k in 1:size(uhat,1)
-                inner_loop += uhat[k]*double_product[k,m];
-            end
-        second_deriv[m] = inner_loop;
-    end
-    return second_deriv
-end
-
-"""
     generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
 
 Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion.
 
 """
-function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
+function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
     # Transform random initial condition to Fourier domain
     uhat0 = fft_norm(initial_condition);
     dL = abs(L2-L1);
 
     # Generate Fourier Galerkin solution for N
-    p = [N,dL];
+    p = [N,dL,nu];
     t_length = tspan[2]/dt+1;
 
     # Solve the system of ODEs in Fourier domain
@@ -211,12 +182,12 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
 end
 
 """
-    generate_basis_solution(L1,L2,t_span,N,basis,initial_condition)
+    generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
 
 Generate the solution for a given linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
 
 """
-function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
+function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
     u0 = spectral_coefficients(basis,initial_condition);
     dL = abs(L2-L1);
 
@@ -224,7 +195,7 @@ function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_func
     Dmatrix = spectral_matrix(basis,Dbasis);
     D2basis = fourier_diff(Dbasis,N,dL);
     D2matrix = spectral_matrix(basis,D2basis);
-    p = [Dmatrix,D2matrix];
+    p = [Dmatrix,D2matrix,nu];
 
     prob = ODEProblem(pde_function,u0,t_span,p);
     sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt);
@@ -237,23 +208,19 @@ function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_func
 end
 
 """
-    generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition)
+    generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-4,rtol=1e-10,atol=1e-14)
 
 Generate the solution for a given non-linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
 
 """
-function generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-4,rtol=1e-10,atol=1e-14)
+function generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-4,nu=0.1,rtol=1e-10,atol=1e-14)
     u0 = spectral_coefficients(basis,initial_condition);
     dL = abs(L2-L1);
 
-    Dbasis = fourier_diff(basis,N,dL);#;format="spectral");
-    D2basis = fourier_diff(Dbasis,N,dL);#;format="spectral");
+    Dbasis = fourier_diff(basis,N,dL);
+    D2basis = fourier_diff(Dbasis,N,dL);#
     D2matrix = spectral_matrix(basis,D2basis);
-    triple_product = quadratic_nonlinear_triple_product(basis,Dbasis);
-    double_product = second_derivative_product(basis,D2basis);
-    # p = [D2matrix,triple_product];
-    # p = [double_product,triple_product];
-    p = [double_product,basis,dL,N];
+    p = [D2matrix,basis,dL,N,nu];
 
     prob = ODEProblem(pde_function,u0,t_span,p);
     sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt);
@@ -266,7 +233,21 @@ function generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_conditio
 end
 
 """
+    function central_difference(u_j,u_jpos,u_jneg,mu)
+
+Compute the second order central difference for the viscous term of the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$. `mu` is equal to \$ \\frac{\\nu *\\Delta t}{\\Delta x^2}.
+
+"""
+function central_difference(u_j,u_jpos,u_jneg,mu)
+    ux = zeros(size(u_j,2));
+    ux = mu.*(u_jpos-2*u_j+u_jneg);
+    return ux
+end
+
+"""
     function backward_upwind(u_j,u_jneg,u_jnegg,nu)
+
+Compute the partial RHS (\$u_j^{n+1} = u_j^n\$ + `backward_upwind`) of the second order backward upwind scheme of Beam and Warming for the inviscid Burgers equation ``u_t = -u u_x`` (split into monotone and non-montone terms), \$-\\nu(u_j^n-u_{j-1}^n) - \\frac{\\nu}{2}(1-\\nu)(u_j^n-u_{j-1}^n) + \\frac{\\nu}{2}(1-\\nu)(u_{j-1}^n-u_{j-2}^n)\$. `nu` is the CFL condition.
 
 """
 function backward_upwind(u_j,u_jneg,u_jnegg,nu)
@@ -278,6 +259,8 @@ end
 """
     function forward_upwind(u_j,u_jpos,u_jposs,nu)
 
+Compute the partial RHS (\$u_j^{n+1} = u_j^n\$ + `forward_upwind`) of the second order forward upwind scheme of Beam and Warming for the inviscid Burgers equation ``u_t = -u u_x`` (split into monotone and non-montone terms), \$-\\nu(u_{j+1}^n-u_{j}^n) - \\frac{\\nu}{2}(\\nu+1)(u_{j+1}^n-u_{j}^n) + \\frac{\\nu}{2}(\\nu+1)(u_{j+2}^n-u_{j+1}^n)\$. `nu` is the CFL condition.
+
 """
 function forward_upwind(u_j,u_jpos,u_jposs,nu)
     ux = zeros(size(u_j,2));
@@ -287,6 +270,8 @@ end
 
 """
     function van_leer_limiter(r)
+
+Compute the Van Leer limiter \$\\Psi = \\frac{r + |r|}{1+r}\$ where ``r`` is the gradient ratio.
 
 """
 function van_leer_limiter(r)
@@ -377,7 +362,7 @@ function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=
         dt_dx = abs(maximum(u_sol[i,:])*dt/dx);
         if dt_dx > 1
             println("Failed CFL Test!")
-            break;
+            return nothing;
         end
 
         # Preallocate arrays for each loop
@@ -401,6 +386,59 @@ function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=
         uxpos[1:end-2] = forward_upwind_limited(u_sol[i,1:end-2],u_sol[i,2:end-1],u_sol[i,3:end],vcat(u_sol[i,end],u_sol[i,1:end-3]),nuneg[1:end-2]);
 
         u_sol[i+1,:] = u_sol[i,:] .+ (uxneg .+ uxpos);
+    end
+    dt_dx = abs(dt/dx);
+    return u_sol, dt_dx
+end
+
+"""
+
+
+"""
+function generate_bwlimitersoupwind_viscous_solution(L1,L2,t_end,N,initial_condition;dt=1e-4,nu=0.1)
+    dL = abs(L2-L1);
+    # Set up periodic domain
+    j = reduce(vcat,[0:1:N-1]);
+    x = (dL.*j)./N;
+    dx = x[2]-x[1];
+    t = reduce(vcat,[0:dt:t_end]);
+    u_sol = zeros(size(t,1),N);
+    u_sol[1,:] = initial_condition;
+    for i in 1:(size(t,1)-1) # Loop over time domain
+        # Check CFL condition
+        dt_dx = abs(maximum(u_sol[i,:])*dt/dx);
+        if dt_dx > 1
+            println("Failed CFL Test!")
+            return nothing;
+        end
+
+        # Preallocate arrays for each loop
+        uneg = zeros(size(u_sol,2));
+        upos = zeros(size(u_sol,2));
+        uxneg = zeros(size(u_sol,2));
+        uxpos = zeros(size(u_sol,2));
+        ux_viscous = zeros(size(u_sol,2));
+
+        # Solve one step of upwind solution
+        upos = max.(u_sol[i,:],zeros(size(u_sol,2)));
+        uneg = min.(u_sol[i,:],zeros(size(u_sol,2)));
+        nupos = upos*(dt/dx); # CFL condition for each u, u > 0 - also controls which differencing scheme is used
+        nuneg = uneg*(dt/dx); # CFL condition for each u, u < 0 - also controls which differencing scheme is used
+        mu = (nu*dt)/(dx)^2;
+
+        uxneg[1] = backward_upwind_limited(u_sol[i,1],u_sol[i,end],u_sol[i,end-1],u_sol[i,2],nupos[1]);
+        uxneg[2] = backward_upwind_limited(u_sol[i,2],u_sol[i,1],u_sol[i,end],u_sol[i,3],nupos[2]);
+        uxneg[3:end] = backward_upwind_limited(u_sol[i,3:end],u_sol[i,2:end-1],u_sol[i,1:end-2],vcat(u_sol[i,4:end],u_sol[i,1]),nupos[3:end]);
+
+        uxpos[end] = forward_upwind_limited(u_sol[i,end],u_sol[i,1],u_sol[i,2],u_sol[i,end-1],nuneg[end]);
+        uxpos[end-1] = forward_upwind_limited(u_sol[i,end-1],u_sol[i,end],u_sol[i,1],u_sol[i,end-2],nuneg[end-1]);
+        uxpos[1:end-2] = forward_upwind_limited(u_sol[i,1:end-2],u_sol[i,2:end-1],u_sol[i,3:end],vcat(u_sol[i,end],u_sol[i,1:end-3]),nuneg[1:end-2]);
+
+        ux_viscous[1] = central_difference(u_sol[i,1],u_sol[i,2],u_sol[i,end],mu);
+        ux_viscous[2:end-1] = central_difference(u_sol[i,2:end-1],u_sol[i,3:end],u_sol[i,1:end-2],mu);
+        ux_viscous[end] = central_difference(u_sol[i,end],u_sol[i,1],u_sol[i,end-1],mu);
+
+        u_sol[i+1,:] = u_sol[i,:] .+ (uxneg .+ uxpos) .+ ux_viscous;
     end
     dt_dx = abs(dt/dx);
     return u_sol, dt_dx

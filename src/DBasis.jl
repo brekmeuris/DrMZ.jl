@@ -133,24 +133,6 @@ function quadratic_nonlinear_triple_product(basis,Dbasis)
 end
 
 """
-    second_derivative_product(basis,DDbasis)
-
-"""
-function second_derivative_product(basis,D2basis)
-    double_product = zeros(size(basis,2),size(basis,2))
-    for k in 1:size(basis,2)
-        for m in 1:size(basis,2)
-            inner_loop = 0.0;
-            for p in 1:size(basis,1)
-                inner_loop += D2basis[p,k]*conj(basis[p,m]);
-            end
-            double_product[k,m] = inner_loop/(basis[:,m]'*basis[:,m]);
-        end
-    end
-    return double_product
-end
-
-"""
     save_basis(basis,N,n_epoch,pde_function)
 
 FINISH!!!

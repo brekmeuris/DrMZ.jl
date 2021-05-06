@@ -66,13 +66,12 @@ function norm_rel_error(target,prediction)
 end
 
 """
-    average_error(error)
+    average_error(domain,error)
 
 Compute the average error using the trapezoid rule \$\\frac{1}{T} \\int_0^T error(t) dt\$.
 
 """
 function average_error(domain,error)
-    # return 1/(domain[end]-domain[1])*simpson(domain,error)
     return 1/(domain[end]-domain[1])*trapz(domain,error)
 end
 
@@ -367,4 +366,25 @@ Compute the IFFT normalized by \$N\$.
 function ifft_norm(solution)
     N = size(solution,1);
     return N*ifft(solution)
+end
+
+"""
+    function shifted_nodes(a,b,xd)
+
+Compute the shifted nodes for Gauss-Legendre quadrature from \$ \\int_{-1}^1 \$ to \$ \\int_a^b \$.
+
+"""
+function shifted_nodes(a,b,xd)
+    return (b-a)/2*xd.+(a+b)/2;
+end
+
+"""
+    function gauss_quad(a,b,func,number_points)
+
+Compute the integral using Gauss-Legendre quadrature for the interval \$ \\int_a^b \$ for a given `func` using a specified `number_points`.
+
+"""
+function gauss_quad(a,b,func,number_points)
+    nodes, weights = gausslegendre(number_points);
+    return (b-a)/2*weights'*(func.(shifted_nodes(a,b,nodes)));
 end
