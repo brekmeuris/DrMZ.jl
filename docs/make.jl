@@ -13,7 +13,7 @@ makedocs(;
     #     prettyurls=get(ENV, "CI", "false") == "true",
     #     canonical="https://brekmeuris.github.io/DrMZ.jl",
     #     assets=String[],
-    ),
+    # ),
     # format = Markdown(),
     pages=[
         "Home" => "index.md",
