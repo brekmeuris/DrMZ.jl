@@ -29,3 +29,9 @@ To add the package from direct download from GitHub using Julia REPL:
 Under the ```examples\advection_advection_diffusion_opnn``` directory there is an example script for the advection and advection-diffusion equation. The example script, ```advection_advection_diffusion_opnn.jl```, generates the data set, trains the neural network, and outputs a few results. To run this script, there are several additional packages that need to be installed in addition to the ```DrMZ``` package. To add these packages using Julia REPL:
 
 ``` ] add Parameters, LaTeXStrings, ColorSchemes, Plots, PyPlot ```
+
+## References:
+
+The operator neural networks were developed based on the struture presented by Lu Lu et al. (2021).
+
+Lu, L., Jin, P., Pang, G., Zhang, Z., & Karniadakis, G. E. (2021). Learning nonlinear operators via DeepONet based on the universal approximation theorem of operators. Nature Machine Intelligence, 3(3), 218-229.
