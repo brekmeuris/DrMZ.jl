@@ -13,7 +13,7 @@ makedocs(;
     sitename="DrMZ.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://brekmeuris.github.io/DrMZ.jl/dev/",
+        canonical="https://brekmeuris.github.io/DrMZ.jl/",
         assets=String[],
     ),
     # format = Markdown(),
