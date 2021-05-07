@@ -8,7 +8,7 @@
 
 This package, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks, finding custom basis functions, solving PDEs using the custom basis functions, and constructing reduced order models.
 
-This repository is in a pre-release state with each update potentially breaking. This module is set up to run on CPUs using double precision and during training will spawn as many threads as there are cores available. GPU support is available but needs testing and modification for single precision type consistency.
+This package is in a pre-release state with each update potentially breaking. This module is set up to run on CPUs using double precision and during training will spawn as many threads as there are cores available. GPU support is available but needs testing and modification for single precision type consistency.
 
 ## Adding this package:
  
