@@ -2,6 +2,8 @@ using DrMZ
 using Documenter
 # using DocumenterMarkdown
 
+push!(LOAD_PATH,"../src/")
+
 DocMeta.setdocmeta!(DrMZ, :DocTestSetup, :(using DrMZ); recursive=true)
 
 makedocs(;
