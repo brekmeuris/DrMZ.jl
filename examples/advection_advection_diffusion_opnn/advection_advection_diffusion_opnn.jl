@@ -121,10 +121,10 @@ end
 # Change the working directory to the file location
 cd(@__DIR__)
 
-# Uncomment to generate new data and train the model
-# generate_train("advection_equation",advection_pde!)
-# generate_train("advection_diffusion_equation",advection_diffusion_pde!)
+# Generate new data and train the model
+generate_train("advection_equation",advection_pde!)
+generate_train("advection_diffusion_equation",advection_diffusion_pde!)
 
-# Enter "none", an integer value (e.g. 975), or "exact" to specify an initial condition
+# Generate results - enter "none", an integer value (e.g. 975), or "exact" to specify an initial condition
 generate_opnn_results("advection_equation",advection_pde!;random_integer = "exact")
 generate_opnn_results("advection_diffusion_equation",advection_diffusion_pde!;random_integer = "exact")
