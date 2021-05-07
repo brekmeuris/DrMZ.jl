@@ -22,7 +22,7 @@ To add the package from direct download from GitHub using Julia REPL:
 
 ## Accessing the in-progress documentation:
 
-[Documentation](https://brekmeuris.github.io/DrMZ.jl/) complete with working links to the source.
+[Documentation](https://brekmeuris.github.io/DrMZ.jl/dev/) complete with working links to the source.
 
 ## Running an example operator neural network:
 
