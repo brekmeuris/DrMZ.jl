@@ -13,7 +13,7 @@ This package is in a pre-release state with each update potentially breaking. Th
 
 ## Adding this package:
 
-This package has been tested on the long-term support (LTS) release of Julia 1.0.5. [Download Julia 1.0.5](https://julialang.org/downloads/#long_term_support_release) and check out the [platform specific instructions] (https://julialang.org/downloads/platform/) for instructions on adding Julia to PATH.
+This package has been tested on the long-term support (LTS) release of Julia 1.0.5. [Download Julia 1.0.5](https://julialang.org/downloads/#long_term_support_release) and check out the [platform specific instructions](https://julialang.org/downloads/platform/) for instructions on adding Julia to PATH.
 
 To add the package from GitHub link using Julia REPL:
 
@@ -24,9 +24,11 @@ To add the package from direct download from GitHub using Julia REPL:
 ``` ] add path_to_GitHub_repository_download_location ```
 
 
-## Accessing the in-progress documentation:
+## Accessing the development documentation:
 
-[Documentation](https://brekmeuris.github.io/DrMZ.jl/dev/) complete with working links to the source.
+[Development documentation](https://brekmeuris.github.io/DrMZ.jl/dev/) complete with working links to the source. Additionally, you can access the documentation from the Julia REPL:
+
+```? name_of_function```
 
 ## Running an example operator neural network:
 
