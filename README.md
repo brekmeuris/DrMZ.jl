@@ -40,6 +40,8 @@ Once all the additional packages have been installed, the example script can be 
 
 ```julia advection_advection_diffusion_opnn.jl```
 
+The first time this script is ran it may take some time to indicate the dataset is being built as it will show a few warnings and install additional required packages.
+
 ## References:
 
 The operator neural networks were implemented based on the structure presented by Lu Lu et al. (2021).
