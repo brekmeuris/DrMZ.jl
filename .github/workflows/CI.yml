@@ -10,10 +10,12 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1'
-          - 'nightly'
+          - '1.0.5'
+#           - 'nightly'
         os:
           - ubuntu-latest
+          - macos-latest
+          - windows-latest
         arch:
           - x64
     steps:
@@ -45,7 +47,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
-          version: '1'
+          version: '1.0.5'
       - run: |
           julia --project=docs -e '
             using Pkg
@@ -63,7 +65,3 @@ jobs:
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
-#       - run: julia --project=docs docs/make.jl
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
