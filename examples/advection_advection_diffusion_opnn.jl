@@ -1,3 +1,5 @@
+ENV["JULIA_CUDA_SILENT"] = true
+
 using DrMZ
 using Parameters: @with_kw
 using Flux.NNlib
@@ -10,7 +12,7 @@ using Random
 using Printf
 
 default(fontfamily="serif",frame=:box,grid=:hide,palette=:viridis,markeralpha=0.4,dpi=200,legendfontsize=6);
-PyPlot.matplotlib[:rc]("mathtext",fontset="cm")
+PyPlot.matplotlib.rc("mathtext",fontset="cm")
 
 @with_kw mutable struct Args
     num_sensors::Int = 128;
@@ -20,44 +22,30 @@ PyPlot.matplotlib[:rc]("mathtext",fontset="cm")
     L1::Float64 = 0.0;
     L2::Float64 = 1.0;
     tspan::Tuple = (0.0,1.0);
-    n_epoch::Int = 25000;
+    n_epoch::Int = 50;
     N::Int = num_sensors;
-    branch_layers::Int = 2;
-    branch_neurons::Array{Tuple} = [(Int(num_sensors),num_sensors),(num_sensors,N)];
-    branch_activations::Array = [relu,identity];
-    trunk_layers::Int = 3;
-    trunk_neurons::Array{Tuple} = [(2,num_sensors),(num_sensors,num_sensors),(num_sensors,N)];
-    trunk_activations::Array = [relu,relu,relu];
+    branch_layers::Int = 2; # Branch depth
+    branch_neurons::Array{Tuple} = [(Int(num_sensors),num_sensors),(num_sensors,N)]; # Branch layers input and output dimensions - quantity of tuples must match branch depth
+    branch_activations::Array = [relu,identity]; # Activation functions for each branch layer
+    trunk_layers::Int = 3; # Trunk depth
+    trunk_neurons::Array{Tuple} = [(2,num_sensors),(num_sensors,num_sensors),(num_sensors,N)]; # Trunk layers input and output dimensions - quantity of tuples must match trunk depth
+    trunk_activations::Array = [relu,relu,relu]; # Activation functions for each trunk layer
 end
 
 function generate_train(pde_function,pde_function_handle;kws...)
 
     args = Args(;);
 
+    # Generate training and testing data
     train_data, test_data = generate_periodic_train_test(args.L1,args.L2,args.tspan,args.num_sensors,args.num_train_functions,args.num_test_functions,args.num_sol_points,pde_function_handle);
     save_data(train_data,test_data,args.num_train_functions,args.num_test_functions,args.num_sol_points,pde_function)
 
     branch = build_dense_model(args.branch_layers,args.branch_neurons,args.branch_activations);
     trunk = build_dense_model(args.trunk_layers,args.trunk_neurons,args.trunk_activations)
 
-    branch, trunk, loss_train, loss_test = train_model(branch,trunk,args.n_epoch,train_data,test_data,pde_function);
-    save_model(branch,trunk,args.n_epoch,loss_train,loss_test,pde_function)
-
-    # Plot the error as a function of epoch
-    pltloss = plot(log.(loss_train),palette=:viridis,frame=:box,linewidth=:2,label="Train",xlabel = "Epoch",ylabel = "Log(MSE)")
-    plot!(pltloss,log.(loss_test),palette=:viridis,frame=:box,linewidth=:2,label="Test")
-    display(pltloss)
-
-    # Print MSE of training data
-    train_error_MSE = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3])
-    println("Train MSE $train_error_MSE")
-
-    # Print MSE of testing data
-    test_error_MSE = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3])
-    println("Test MSE $test_error_MSE")
-
-    # Save some figures
-    savefig(pltloss, @sprintf("train_test_loss_epochs_%i_%s.png",args.n_epoch,pde_function))
+    # Train the operator neural network
+    branch, trunk = train_model(branch,trunk,args.n_epoch,train_data,test_data,pde_function);
+    save_model(branch,trunk,args.n_epoch,pde_function)
 
 end
 
@@ -95,12 +83,14 @@ function generate_opnn_results(pde_function,pde_function_handle;random_integer =
     display(pltrand_test)
     savefig(pltrand_test, @sprintf("random_ic_%s_%i.png",pde_function,rand_int))
 
+    # M size Fourier solution for comparisons
     u_fourier_M = generate_fourier_solution(args.L1,args.L2,args.tspan,args.num_sensors,ic,pde_function_handle);
 
     pltexact = plot(heatmap(periodic_fill_domain(x),t,periodic_fill_solution(u_fourier_M),aspect_ratio=dL/args.tspan[2]),fillcolor=cgrad(ColorSchemes.viridis.colors),label=false,xlabel = L"x", ylabel = L"t",xlims=(x[1],x[end]),ylims=(0,args.tspan[2]))
     display(pltexact)
     savefig(pltexact, @sprintf("exact_fourier_solution_random_ic_%s_%i.png",pde_function,rand_int))
 
+    # Operator neural network prediction
     u_predict = predict(branch,trunk,ic,x,t);
 
     pltpredict = plot(heatmap(periodic_fill_domain(x),t,periodic_fill_solution(u_predict),aspect_ratio=dL/args.tspan[2]),fillcolor=cgrad(ColorSchemes.viridis.colors),label=false,xlabel = L"x", ylabel = L"t",xlims=(x[1],x[end]),ylims=(0,args.tspan[2]))
@@ -126,5 +116,6 @@ generate_train("advection_equation",advection_pde!)
 generate_train("advection_diffusion_equation",advection_diffusion_pde!)
 
 # Generate results - enter "none", an integer value (e.g. 975), or "exact" to specify an initial condition
+# If testing ability of network to extrapolate beyond the training interval, comment out the generation functions above and adjust the Arg tspan
 generate_opnn_results("advection_equation",advection_pde!;random_integer = "exact")
 generate_opnn_results("advection_diffusion_equation",advection_diffusion_pde!;random_integer = "exact")

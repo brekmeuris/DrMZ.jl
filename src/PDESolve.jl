@@ -1,54 +1,50 @@
 """
-    advection_pde!(duhat,uhat,k,t)
+    advection_pde!(duhat,uhat,p,t)
 
 RHS for the advection equation ``u_t = - u_x`` for numerical integration in Fourier space.
 
 """
 function advection_pde!(duhat,uhat,p,t)
-    N, dL, nu = p;
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
+    N, k, nu = p;
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -im*k.*uhat;
 end
 
 """
-    advection_diffusion_pde!(duhat,uhat,p,t_span)
+    advection_diffusion_pde!(duhat,uhat,p,t)
 
 RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numerical integration in Fourier space where ν is the viscosity.
 
 """
 function advection_diffusion_pde!(duhat,uhat,p,t)
-    N, dL, nu = p;
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
+    N, k, nu = p;
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -im*k.*uhat + nu*(im*k).^2 .*uhat;
 end
 
 """
-    viscous_burgers_pde!(duhat,uhat,p,t_span)
+    viscous_burgers_pde!(duhat,uhat,p,t)
 
 RHS for the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$ for numerical integration in Fourier space where ν is the viscosity.
 
 """
 function viscous_burgers_pde!(duhat,uhat,p,t)
-    N, dL, nu = p;
+    N, k, nu = p;
     alpha = 1.0;
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
     uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
     duhat .= -nu*k.^2 .*uhat .- uhat_nonlinear;
 end
 
 """
-    inviscid_burgers_pde!(duhat,uhat,p,t_span)
+    inviscid_burgers_pde!(duhat,uhat,p,t)
 
 RHS for the inviscid Burgers equation \$u_t = - u u_x\$ for numerical integration in Fourier space.
 
 """
 function inviscid_burgers_pde!(duhat,uhat,p,t)
-    N, dL, nu = p;
+    N, k, nu = p;
     alpha = 1.0;
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
     duhat .= -uhat_nonlinear;
@@ -75,7 +71,7 @@ function quadratic_nonlinear(uhat,N,dL,alpha)
 end
 
 """
-    opnn_advection_pde!(du,u,p,t_span)
+    opnn_advection_pde!(du,u,p,t)
 
 RHS for the advection equation ``u_t = - u_x`` for numerical integration in the custom basis space.
 
@@ -86,7 +82,7 @@ function opnn_advection_pde!(du,u,p,t)
 end
 
 """
-    opnn_advection_diffusion_pde!(du,u,p,t_span)
+    opnn_advection_diffusion_pde!(du,u,p,t)
 
 RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numerical integration in the custom basis space where ν is the viscosity.
 
@@ -97,7 +93,7 @@ function opnn_advection_diffusion_pde!(du,u,p,t)
 end
 
 """
-    opnn_viscous_burgers_pde!(du,u,p,t_span)
+    opnn_viscous_burgers_pde!(du,u,p,t)
 
 RHS for the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$ for numerical integration in the custom basis space where ν is the viscosity.
 
@@ -109,7 +105,7 @@ function opnn_viscous_burgers_pde!(du,u,p,t)
 end
 
 """
-    opnn_inviscid_burgers_pde!(du,u,p,t_span)
+    opnn_inviscid_burgers_pde!(du,u,p,t)
 
 RHS for the inviscid Burgers equation \$u_t = - u u_x\$ for numerical integration in the custom basis space.
 
@@ -156,7 +152,7 @@ function quadratic_nonlinear_opnn_pseudo(basis,uhat,dL,N);
 end
 
 """
-    generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
+    generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,,nu=0.1,rtol=1e-10,atol=1e-14)
 
 Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion.
 
@@ -167,7 +163,8 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
     dL = abs(L2-L1);
 
     # Generate Fourier Galerkin solution for N
-    p = [N,dL,nu];
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
+    p = [N,k,nu]
     t_length = tspan[2]/dt+1;
 
     # Solve the system of ODEs in Fourier domain
@@ -281,7 +278,7 @@ end
 """
     function gradient_ratio_backward_j(u_j,u_jneg,u_jpos)
 
-Compute the backward gradient ratio at point \$i\$.
+Compute the backward gradient ratio at point \$i\$ as required for the [`van_leer_limiter`](@ref).
 
 """
 function gradient_ratio_backward_j(u_j,u_jneg,u_jpos)
@@ -291,6 +288,8 @@ end
 """
     function gradient_ratio_backward_jneg(u_j,u_jneg,u_jnegg)
 
+Compute the backward gradient ratio at point \$i-1\$ as required for the [`van_leer_limiter`](@ref).
+
 """
 function gradient_ratio_backward_jneg(u_j,u_jneg,u_jnegg)
     return (u_j .-u_jneg)./(u_jneg .-u_jnegg);
@@ -298,6 +297,8 @@ end
 
 """
     function gradient_ratio_forward_j(u_j,u_jneg,u_jpos)
+
+Compute the forward gradient ratio at point \$i\$ as required for the [`van_leer_limiter`](@ref).
 
 """
 function gradient_ratio_forward_j(u_j,u_jneg,u_jpos)
@@ -307,6 +308,8 @@ end
 """
     function gradient_ratio_forward_jpos(u_j,u_jpos,u_jposs)
 
+Compute the forward gradient ratio at point \$i+1\$ as required for the [`van_leer_limiter`](@ref).
+
 """
 function gradient_ratio_forward_jpos(u_j,u_jpos,u_jposs)
     return (u_jpos .-u_j)./(u_jposs .-u_jpos);
@@ -314,6 +317,8 @@ end
 
 """
     function backward_upwind_limited(u_j,u_jneg,u_jnegg,u_jpos,nu)
+
+Compute the partial RHS (\$u_j^{n+1} = u_j^n\$ + `backward_upwind`) of the second order limited backward upwind scheme of Beam and Warming for the inviscid Burgers equation ``u_t = -u u_x`` (split into monotone and non-montone terms), \$-\\nu(u_j^n-u_{j-1}^n) - \\frac{\\nu}{2}(1-\\nu)(u_j^n-u_{j-1}^n) + \\frac{\\nu}{2}(1-\\nu)(u_{j-1}^n-u_{j-2}^n)\$. `nu` is the CFL condition.
 
 """
 function backward_upwind_limited(u_j,u_jneg,u_jnegg,u_jpos,nu)
@@ -330,6 +335,8 @@ end
 
 """
     function forward_upwind_limited(u_j,u_jpos,u_jposs,u_jneg,nu)
+
+Compute the partial RHS (\$u_j^{n+1} = u_j^n\$ + `forward_upwind`) of the second order limited forward upwind scheme of Beam and Warming for the inviscid Burgers equation ``u_t = -u u_x`` (split into monotone and non-montone terms), \$-\\nu(u_{j+1}^n-u_{j}^n) - \\frac{\\nu}{2}(\\nu+1)(u_{j+1}^n-u_{j}^n) + \\frac{\\nu}{2}(\\nu+1)(u_{j+2}^n-u_{j+1}^n)\$. `nu` is the CFL condition.
 
 """
 function forward_upwind_limited(u_j,u_jpos,u_jposs,u_jneg,nu)

@@ -64,32 +64,26 @@ function build_dense_model(number_layers,neurons,activations)
 end
 
 """
-    train_model(branch,trunk,n_epoch,train_data;learning_rate=0.00001)
+    train_model(branch,trunk,n_epoch,train_data;learning_rate=0.00001,save_at=2500)
 
 Train the operator neural network using the mean squared error (MSE) and ADAM optimization for `n_epochs` epochs.
 
 """
-function train_model(branch,trunk,n_epoch,train_data,test_data,pde_function;learning_rate=1e-5)
+function train_model(branch,trunk,n_epoch,train_data,test_data,pde_function;learning_rate=1e-5,save_at=2500)
     loss(x,y,z) = Flux.mse(branch(x)'*trunk(y),z)
     par = Flux.params(branch,trunk);
     opt = ADAM(learning_rate);
-    loss_all_train = Array{Float64}(undef,n_epoch+1,1);
-    loss_all_test = Array{Float64}(undef,n_epoch+1,1);
-    loss_all_train[1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]);
-    loss_all_test[1] = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]);
     @showprogress 1 "Training the model..." for i in 1:n_epoch
         Flux.train!(loss,par,train_data,opt);
-        loss_all_train[i+1] = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]);
-        loss_all_test[i+1] = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]);
-        if i%2500 == 0
-            save_model(branch,trunk,i,loss_all_train,loss_all_test,pde_function)
+        if i%save_at == 0
+            save_model(branch,trunk,i,(pde_function*"_temp"))
             train_MSE = loss_all(branch,trunk,train_data.data[1],train_data.data[2],train_data.data[3]);
             test_MSE = loss_all(branch,trunk,test_data.data[1],test_data.data[2],test_data.data[3]);
             println("Train MSE $train_MSE")
             println("Test MSE $test_MSE")
         end
     end
-    return branch,trunk,loss_all_train,loss_all_test
+    return branch,trunk
 end
 
 """
@@ -245,18 +239,6 @@ function generate_periodic_train_test(L1,L2,t_span,number_sensors,number_train_f
     opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
     opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
 
-    # opnn_train_ic = reshape(train_ic,number_sensors,Int(number_solution_points*number_train_functions));
-    # opnn_train_loc = reshape(train_loc,2,Int(number_solution_points*number_train_functions));
-    # opnn_train_target = reshape(train_target,1,Int(number_solution_points*number_train_functions));
-    # opnn_test_ic = reshape(test_ic,number_sensors,Int(number_solution_points*number_test_functions));
-    # opnn_test_loc = reshape(test_loc,2,Int(number_solution_points*number_test_functions));
-    # opnn_test_target = reshape(test_target,1,Int(number_solution_points*number_test_functions));
-
-    # train_zip = zip(opnn_train_ic, opnn_train_loc, opnn_train_target);
-    # test_zip = zip(opnn_test_ic, opnn_test_loc, opnn_test_target)
-    # train_data = DataLoader(train_zip; batchsize=batch);
-    # test_data = DataLoader(test_zip; batchsize=batch);
-
     train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);
     test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
 
@@ -269,11 +251,17 @@ end
 Save the trained `branch` and `trunk` neural networks and the training and testing loss history.
 
 """
-function save_model(branch,trunk,n_epoch,loss_all_train,loss_all_test,pde_function)
+# function save_model(branch,trunk,n_epoch,loss_all_train,loss_all_test,pde_function)
+#     @save @sprintf("branch_epochs_%i_%s.bson",n_epoch,pde_function) branch
+#     @save @sprintf("trunk_epochs_%i_%s.bson",n_epoch,pde_function) trunk
+#     @save @sprintf("train_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_train
+#     @save @sprintf("test_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_test
+# end
+function save_model(branch,trunk,n_epoch,pde_function)
     @save @sprintf("branch_epochs_%i_%s.bson",n_epoch,pde_function) branch
     @save @sprintf("trunk_epochs_%i_%s.bson",n_epoch,pde_function) trunk
-    @save @sprintf("train_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_train
-    @save @sprintf("test_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_test
+    # @save @sprintf("train_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_train
+    # @save @sprintf("test_loss_epochs_%i_%s.bson",n_epoch,pde_function) loss_all_test
 end
 
 """

@@ -371,7 +371,7 @@ end
 """
     function shifted_nodes(a,b,xd)
 
-Compute the shifted nodes for Gauss-Legendre quadrature from \$\\int_{-1}^1 \$ to \$ \\int_a^b\$.
+Compute the shifted nodes for Gauss-Legendre quadrature from \$\\int_{-1}^1\$ to \$ \\int_a^b\$.
 
 """
 function shifted_nodes(a,b,xd)

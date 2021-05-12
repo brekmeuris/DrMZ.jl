@@ -36,20 +36,27 @@ end
 
 """
 function build_basis(trunk,x_locations,opnn_output_width,initial_condition)
-
     basis = zeros(size(x_locations,1),opnn_output_width);
     for i in 1:opnn_output_width
         basis[:,i] = basis_OpNN(trunk,x_locations,i)
     end
 
-    svd_full = svd(basis,full=true);
+    norm_basis = [norm(basis[:,i]) for i in 1:size(basis,2)];
+    norm_sort = reverse(sortperm(norm_basis));
+    sorted_basis = zeros(size(basis,1),size(basis,2));
+    for i in 1:size(basis,2)
+        indsort = norm_sort[i];
+        sorted_basis[:,i] = basis[:,indsort];
+    end
+
+    # svd_full = svd(basis,full=true);
+    svd_full = Matrix(qr(sorted_basis).Q);
     ic_norm = initial_condition/norm(initial_condition,2);
-    ic_svd_full = hcat(ic_norm,svd_full.U[:,1:end-1]);
+    # ic_svd_full = hcat(ic_norm,svd_full.U[:,1:end-1]);
+    ic_svd_full = hcat(ic_norm,svd_full[:,1:end-1]);
 
     orthonormal_basis = Matrix(qr(ic_svd_full).Q);
-
     orthonormal_check(orthonormal_basis);
-
     return orthonormal_basis
 end
 
@@ -58,13 +65,9 @@ end
 
 """
 function build_basis_redefinition(basis_full,x_redefined,x_full)
-
     basis = transpose(solution_spatial_sampling(x_redefined,x_full,transpose(basis_full)));
-
     orthonormal_basis = Matrix(qr(basis).Q);
-
     orthonormal_check(orthonormal_basis);
-
     return orthonormal_basis
 end
 
@@ -73,6 +76,7 @@ end
 
 """
 function spectral_coefficients(basis,fnc)
+    N = size(basis,2);
     coefficients = zeros(typeof(basis[1]),size(basis,2));
     for i = 1:size(basis,2)
         if norm(basis[:,i]) > eps()
@@ -87,7 +91,7 @@ function spectral_coefficients(basis,fnc)
         end
     end
     # coefficients = (basis'*fnc); # Uses less memory but not consistently facter cpu times
-    return coefficients
+    return (1/sqrt(N))*coefficients#(1/N)*coefficients
 end
 
 """
@@ -95,12 +99,13 @@ end
 
 """
 function spectral_approximation(basis,coefficients)
+    N = size(basis,2);
     approximation = zeros(typeof(basis[1]),size(basis,1)); # To Do: Extend usage of type of to other function which preallocate an array of zeros
     for i = 1:size(basis,2)
-        approximation += coefficients[i]*basis[:,i]; # Do we need to scale this? 1/dL???
+        approximation += coefficients[i]*basis[:,i];
     end
     # approximation = basis*coefficients; # Uses less memory but not consistently faster cpu times
-    return approximation
+    return sqrt(N)*approximation#N*approximation
 end
 
 """
@@ -134,8 +139,6 @@ end
 
 """
     save_basis(basis,N,n_epoch,pde_function)
-
-FINISH!!!
 
 """
 function save_basis(basis,N,n_epoch,pde_function)
