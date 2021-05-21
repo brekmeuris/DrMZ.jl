@@ -6,9 +6,9 @@
 [![Coverage](https://codecov.io/gh/brekmeuris/DrMZ.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/brekmeuris/DrMZ.jl)
 
 
-This package, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks, finding custom basis functions, solving PDEs using the custom basis functions, and constructing reduced order models.
+This package, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks and constructing full and reduced order models based on the trained operator neural networks.
 
-This package is in a pre-release state with each update potentially breaking. This module is set up to run on CPUs using double precision and during training will spawn up to as many threads as there are cores available. GPU support is available but needs testing and modification for single precision type consistency.
+This package is in a pre-release state with each update potentially breaking. This module is set up to run on CPUs using double precision and during training will spawn (up to) as many threads as there are physical cores available. GPU support is available but needs testing and modification for single precision type consistency.
 
 
 ## Adding this package:
@@ -36,7 +36,7 @@ Under the ```examples``` directory there is an example script for the advection 
 
 ``` ] add Flux, Parameters, LaTeXStrings, ColorSchemes, Plots, PyPlot ```
 
-Once all the additional packages have been installed, the example script can be ran from a terminal session using:
+If you encounter any errors loading all the packages in one go, just add each package sequentially and it should resolve any issues. Once all the additional packages have been installed, the example script can be ran from a terminal session using:
 
 ```julia advection_advection_diffusion_opnn.jl```
 
@@ -44,6 +44,6 @@ The first time this script is ran it may take some time to indicate the dataset 
 
 ## References:
 
-The operator neural networks were implemented based on the structure presented by Lu Lu et al. (2021).
+The operator neural networks were implemented based on the structure presented by Lu Lu et al. (2020).
 
-Lu, L., Jin, P., Pang, G., Zhang, Z., & Karniadakis, G. E. (2021). Learning nonlinear operators via DeepONet based on the universal approximation theorem of operators. Nature Machine Intelligence, 3(3), 218-229.
+Lu, L., Jin, P., & Karniadakis, G. E. (2019). Deeponet: Learning nonlinear operators for identifying differential equations based on the universal approximation theorem of operators. arXiv preprint arXiv:1910.03193.
