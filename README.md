@@ -46,4 +46,4 @@ The first time this script is ran it may take some time to indicate the dataset 
 
 The operator neural networks were implemented based on the structure presented by Lu Lu et al. (2020).
 
-Lu, L., Jin, P., & Karniadakis, G. E. (2019). Deeponet: Learning nonlinear operators for identifying differential equations based on the universal approximation theorem of operators. arXiv preprint arXiv:1910.03193.
+Lu, L., Jin, P., & Karniadakis, G. E. (2020). DeepONet: Learning nonlinear operators for identifying differential equations based on the universal approximation theorem of operators. arXiv preprint arXiv:1910.03193v3.
