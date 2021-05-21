@@ -5,7 +5,7 @@ RHS for the advection equation ``u_t = - u_x`` for numerical integration in Four
 
 """
 function advection_pde!(duhat,uhat,p,t)
-    N, k, nu = p;
+    N, k, dL, nu = p;
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -im*k.*uhat;
 end
@@ -17,7 +17,7 @@ RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numeric
 
 """
 function advection_diffusion_pde!(duhat,uhat,p,t)
-    N, k, nu = p;
+    N, k, dL, nu = p;
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -im*k.*uhat + nu*(im*k).^2 .*uhat;
 end
@@ -29,7 +29,7 @@ RHS for the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$ for numerical
 
 """
 function viscous_burgers_pde!(duhat,uhat,p,t)
-    N, k, nu = p;
+    N, k, dL, nu = p;
     alpha = 1.0;
     uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
@@ -43,7 +43,7 @@ RHS for the inviscid Burgers equation \$u_t = - u u_x\$ for numerical integratio
 
 """
 function inviscid_burgers_pde!(duhat,uhat,p,t)
-    N, k, nu = p;
+    N, k, dL, nu = p;
     alpha = 1.0;
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
@@ -152,7 +152,7 @@ function quadratic_nonlinear_opnn_pseudo(basis,uhat,dL,N);
 end
 
 """
-    generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,,nu=0.1,rtol=1e-10,atol=1e-14)
+    generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
 
 Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion.
 
@@ -164,14 +164,14 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
 
     # Generate Fourier Galerkin solution for N
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
-    p = [N,k,nu]
-    t_length = tspan[2]/dt+1;
+    p = [N,k,dL,nu]
+    t_length = Int(round(tspan[2]/dt)+1);
 
     # Solve the system of ODEs in Fourier domain
     prob = ODEProblem(pde_function,uhat0,tspan,p);
     sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt)
 
-    u_sol = zeros(Int(t_length),N);
+    u_sol = zeros(t_length,N);
     for j in 1:size(sol.t,1) # Reshape output and plot
         u_sol[j,:] = real.(ifft_norm(sol.u[j]));
     end
@@ -179,7 +179,7 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
 end
 
 """
-    generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14)
+    generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
 
 Generate the solution for a given linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
 
@@ -205,7 +205,7 @@ function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_func
 end
 
 """
-    generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-4,rtol=1e-10,atol=1e-14)
+    generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition,pde_function;dt=1e-4,nu=0.1,rtol=1e-10,atol=1e-14)
 
 Generate the solution for a given non-linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
 
@@ -232,7 +232,7 @@ end
 """
     function central_difference(u_j,u_jpos,u_jneg,mu)
 
-Compute the second order central difference for the viscous term of the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$. `mu` is equal to \$ \\frac{\\nu *\\Delta t}{\\Delta x^2}\$.
+Compute the second order central difference for the viscous term of the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$. `mu` is equal to \$ \\frac{\\nu \\Delta t}{\\Delta x^2}\$.
 
 """
 function central_difference(u_j,u_jpos,u_jneg,mu)
@@ -453,4 +453,34 @@ function generate_bwlimitersoupwind_viscous_solution(L1,L2,t_end,N,initial_condi
     end
     dt_dx = abs(dt/dx);
     return u_sol, dt_dx
+end
+
+"""
+    function get_1D_energy_fft(u_solution)
+
+Compute the energy in the Fourier domain using the scaling of \$ \\frac{1}{N} \$.
+
+"""
+function get_1D_energy_fft(u_solution) # To Do: Add and extraction of specific mode step
+    energy = zeros(size(u_solution,1))
+    for i in 1:size(u_solution,1)
+        u_hat = fft_norm(u_solution[i,:]);
+        energy[i] = (1/2)*real((u_hat'*u_hat));
+    end
+    return energy
+end
+
+"""
+    function get_1D_energy_basis(basis,u_solution)
+
+Compute the energy in the custom basis space. The expansion coefficients are scaled by \$ \\frac{1}{\\sqrt(N)} \$ for comparison to the non-unitary Fourier coefficients.
+
+"""
+function get_1D_energy_basis(basis,u_solution) # To Do: Add and extraction of specific mode step
+    energy = zeros(size(u_solution,1))
+    for i in 1:size(u_solution,1)
+        u_hat = (1/sqrt(size(basis,2)))*spectral_coefficients(basis,u_solution[i,:]);
+        energy[i] = (1/2)*real((u_hat'*u_hat));
+    end
+    return energy
 end

@@ -8,10 +8,11 @@ function predict(branch,trunk,initial_condition,x_locations,t_values)
     u = zeros(size(t_values,1),size(x_locations,1));
     bk = branch(initial_condition)';
     for i in 1:size(t_values,1)
-        for j in 1:size(x_locations,1)
-            u[i,j] = bk*trunk(vcat(t_values[i],x_locations[j]));
-        end
+        t_mat = repeat([t_values[i]],1,size(x_locations,1));
+        t_x_mat = vcat(t_mat,x_locations');
+        u[i,:] = bk*trunk(t_x_mat);
     end
+
     return u
 end
 
@@ -66,7 +67,7 @@ end
 """
     train_model(branch,trunk,n_epoch,train_data;learning_rate=0.00001,save_at=2500)
 
-Train the operator neural network using the mean squared error (MSE) and ADAM optimization for `n_epochs` epochs.
+Train the operator neural network using the mean squared error (MSE) and Adam optimization for `n_epochs` epochs.
 
 """
 function train_model(branch,trunk,n_epoch,train_data,test_data,pde_function;learning_rate=1e-5,save_at=2500)

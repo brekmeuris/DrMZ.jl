@@ -43,7 +43,8 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        generate_basis_solution, generate_basis_solution_nonlinear,
        backward_upwind, forward_upwind, backward_upwind_limited, forward_upwind_limited, central_difference,
        van_leer_limiter, gradient_ratio_backward_j, gradient_ratio_backward_jneg, gradient_ratio_forward_j, gradient_ratio_forward_jpos,
-       generate_bwlimitersoupwind_solution, generate_bwlimitersoupwind_viscous_solution
+       generate_bwlimitersoupwind_solution, generate_bwlimitersoupwind_viscous_solution,
+       get_1D_energy_fft, get_1D_energy_basis
 
 # Export the functions for DBasis.jl
 export basis_OpNN, build_basis, build_basis_redefinition,

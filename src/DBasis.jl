@@ -5,7 +5,7 @@
 function basis_OpNN(trunk,x_locations,n)
     basis = zeros(size(x_locations,1));
     for i in 1:size(x_locations,1);
-        basis[i] = trunk(vcat(0,x_locations[i]))[n];
+        basis[i] = trunk(vcat(0.0,x_locations[i]))[n];
     end
     return basis
 end
@@ -41,19 +41,19 @@ function build_basis(trunk,x_locations,opnn_output_width,initial_condition)
         basis[:,i] = basis_OpNN(trunk,x_locations,i)
     end
 
-    norm_basis = [norm(basis[:,i]) for i in 1:size(basis,2)];
-    norm_sort = reverse(sortperm(norm_basis));
-    sorted_basis = zeros(size(basis,1),size(basis,2));
-    for i in 1:size(basis,2)
-        indsort = norm_sort[i];
-        sorted_basis[:,i] = basis[:,indsort];
-    end
+    # norm_basis = [norm(basis[:,i]) for i in 1:size(basis,2)];
+    # norm_sort = reverse(sortperm(norm_basis));
+    # sorted_basis = zeros(size(basis,1),size(basis,2));
+    # for i in 1:size(basis,2)
+    #     indsort = norm_sort[i];
+    #     sorted_basis[:,i] = basis[:,indsort];
+    # end
 
-    # svd_full = svd(basis,full=true);
-    svd_full = Matrix(qr(sorted_basis).Q);
+    svd_full = svd(basis,full=true);
+    # svd_full = Matrix(qr(sorted_basis).Q);
     ic_norm = initial_condition/norm(initial_condition,2);
-    # ic_svd_full = hcat(ic_norm,svd_full.U[:,1:end-1]);
-    ic_svd_full = hcat(ic_norm,svd_full[:,1:end-1]);
+    ic_svd_full = hcat(ic_norm,svd_full.U[:,1:end-1]);
+    # ic_svd_full = hcat(ic_norm,svd_full[:,1:end-1]);
 
     orthonormal_basis = Matrix(qr(ic_svd_full).Q);
     orthonormal_check(orthonormal_basis);
@@ -79,19 +79,15 @@ function spectral_coefficients(basis,fnc)
     N = size(basis,2);
     coefficients = zeros(typeof(basis[1]),size(basis,2));
     for i = 1:size(basis,2)
-        if norm(basis[:,i]) > eps()
-            # coefficients[i] = (basis[:,i]'*fnc)/(basis[:,i]'*basis[:,i]);
-            inner_loop = 0.0;
-            for j = 1:size(basis,1)
-                inner_loop += fnc[j]*conj(basis[j,i]);
-            end
-            coefficients[i] = inner_loop/(basis[:,i]'*basis[:,i]);
-        else
-            coefficients[i] = 0.0;
+        # coefficients[i] = (basis[:,i]'*fnc)/(basis[:,i]'*basis[:,i]);
+        inner_loop = 0.0;
+        for j = 1:size(basis,1)
+            inner_loop += fnc[j]*conj(basis[j,i]);
         end
+        coefficients[i] = inner_loop/(basis[:,i]'*basis[:,i]);
     end
     # coefficients = (basis'*fnc); # Uses less memory but not consistently facter cpu times
-    return (1/sqrt(N))*coefficients#(1/N)*coefficients
+    return coefficients
 end
 
 """
@@ -100,12 +96,12 @@ end
 """
 function spectral_approximation(basis,coefficients)
     N = size(basis,2);
-    approximation = zeros(typeof(basis[1]),size(basis,1)); # To Do: Extend usage of type of to other function which preallocate an array of zeros
+    approximation = zeros(typeof(basis[1]),size(basis,1));
     for i = 1:size(basis,2)
         approximation += coefficients[i]*basis[:,i];
     end
     # approximation = basis*coefficients; # Uses less memory but not consistently faster cpu times
-    return sqrt(N)*approximation#N*approximation
+    return approximation
 end
 
 """
