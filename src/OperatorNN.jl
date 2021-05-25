@@ -130,7 +130,7 @@ function generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
     end
     initial_conditions = zeros(size(x_locations,1),number_functions);
     for i in 1:number_functions
-        initial_conditions[:,i] = values[i,1]*sin.(x_locations).+values[i,2]; # αsin(2πx)+β
+        initial_conditions[:,i] = values[i,1]*sin.(x_locations).+values[i,2]; # αsin(x)+β
     end
     return initial_conditions
 end

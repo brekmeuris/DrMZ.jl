@@ -368,7 +368,7 @@ function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=
     u_sol[1,:] = initial_condition;
     for i in 1:(size(t,1)-1) # Loop over time domain
         # Check CFL condition
-        dt_dx = abs(maximum(u_sol[i,:])*dt/dx);
+        dt_dx = abs(maximum(abs.(u_sol[i,:]))*dt/dx);
         if dt_dx > 1
             println("Failed CFL Test!")
             return nothing;
@@ -396,8 +396,7 @@ function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=
 
         u_sol[i+1,:] = u_sol[i,:] .+ (uxneg .+ uxpos);
     end
-    dt_dx = abs(dt/dx);
-    return u_sol, dt_dx
+    return u_sol
 end
 
 """
@@ -417,7 +416,7 @@ function generate_bwlimitersoupwind_viscous_solution(L1,L2,t_end,N,initial_condi
     u_sol[1,:] = initial_condition;
     for i in 1:(size(t,1)-1) # Loop over time domain
         # Check CFL condition
-        dt_dx = abs(maximum(u_sol[i,:])*dt/dx);
+        dt_dx = abs(maximum(abs.(u_sol[i,:]))*dt/dx);
         if dt_dx > 1
             println("Failed CFL Test!")
             return nothing;
@@ -451,8 +450,7 @@ function generate_bwlimitersoupwind_viscous_solution(L1,L2,t_end,N,initial_condi
 
         u_sol[i+1,:] = u_sol[i,:] .+ (uxneg .+ uxpos) .+ ux_viscous;
     end
-    dt_dx = abs(dt/dx);
-    return u_sol, dt_dx
+    return u_sol
 end
 
 """

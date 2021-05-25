@@ -323,7 +323,9 @@ Extract the solution values ``u(t,x)`` at a reduced number of equally spaced spa
 
 """
 function solution_spatial_sampling(x_prediction,x_target,solution)
-    ind = [findall(x_prediction[i].==x_target)[1] for i in 1:length(x_prediction)];
+    x_target_32 = Float32.(x_target);
+    x_prediction_32 = Float32.(x_prediction);
+    ind = [findall(x_prediction_32[i].==x_target_32)[1] for i in 1:length(x_prediction_32)];
     solution_reduced = zeros(size(solution,1),size(ind,1));
     for i in 1:size(ind,1)
         solution_reduced[:,i] = solution[:,ind[i]]
