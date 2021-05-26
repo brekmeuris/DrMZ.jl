@@ -102,7 +102,7 @@ end
 """
     generate_periodic_functions(x_locations,number_functions,length_scale)
 
-Generate a specified `number_functions` of random periodic functions using the `exp_kernel_periodic` function and a multivariate distribution.
+Generate a specified `number_functions` of random periodic vectors using the `exp_kernel_periodic` function and a multivariate distribution.
 
 """
 function generate_periodic_functions(x_locations,number_functions,length_scale)
@@ -118,7 +118,7 @@ end
 """
     generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
 
-Generate a specified `number_functions` of random periodic functions for the distribution \$α \\sin(x)+β\$ for ``α ∈ [-1,1]`` and ``β ∈ [-1,1]``.
+Generate a specified `number_functions` of random periodic vectors for the distribution \$α \\sin(x)+β\$ for ``α ∈ [-1,1]`` and ``β ∈ [-1,1]``.
 
 """
 function generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
