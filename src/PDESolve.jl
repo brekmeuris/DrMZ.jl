@@ -82,6 +82,17 @@ function opnn_advection_pde!(du,u,p,t)
 end
 
 """
+    opnn_advection_pde_functions!(du,u,p,t)
+
+RHS for the advection equation ``u_t = - u_x`` for numerical integration in the custom basis space.
+
+"""
+function opnn_advection_pde_functions!(du,u,p,t)
+    Dmatrix = p;
+    du .= -Dmatrix*u;
+end
+
+"""
     opnn_advection_diffusion_pde!(du,u,p,t)
 
 RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numerical integration in the custom basis space where ν is the viscosity.
@@ -190,8 +201,14 @@ function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_func
 
     Dbasis = fourier_diff(basis,N,dL);
     Dmatrix = spectral_matrix(basis,Dbasis);
+
+    # Dmatrix = first_derivative_product(basis,Dbasis)
+
     D2basis = fourier_diff(Dbasis,N,dL);
     D2matrix = spectral_matrix(basis,D2basis);
+
+    # D2matrix = second_derivative_product(basis,D2basis)
+
     p = [Dmatrix,D2matrix,nu];
 
     prob = ODEProblem(pde_function,u0,t_span,p);
@@ -225,6 +242,70 @@ function generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_conditio
     u_sol = zeros(size(sol.t,1),size(basis,1));
     for i in 1:size(sol.t,1)
         u_sol[i,:] = spectral_approximation(basis,sol.u[i]);
+    end
+    return u_sol
+end
+
+"""
+    generate_basis_solution_functions(L1,L2,t_span,basis,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
+
+Generate the solution for a given linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
+
+"""
+function generate_basis_solution_functions(L1,L2,x_locations,t_span,basis,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14,number_points=1000)
+
+    u0 = spectral_coefficients_functions(L1,L2,basis,initial_condition;number_points=number_points);
+
+    Dmatrix = zeros(size(u0,1),size(u0,1));
+    for j in 1:size(u0,1)
+        for i in 1:size(u0,1)
+            Dmatrix[i,j] = gauss_quad(L1,L2,(x)->(gradient(basis[j],x)[1]*conj(basis[i](x))),number_points)/gauss_quad(L1,L2,(x)->(basis[i](x)*conj(basis[i](x))),number_points);
+        end
+    end
+
+    p = Dmatrix;
+    # p = [L1,L2,basis]
+
+    prob = ODEProblem(pde_function,u0,t_span,p);
+    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt);
+
+    u_sol = zeros(size(sol.t,1),size(x_locations,1));
+    for i in 1:size(sol.t,1)
+        u_sol[i,:] = spectral_approximation_functions(x_locations,basis,sol.u[i]);
+    end
+    return u_sol
+end
+
+"""
+    generate_basis_solution_fourier_functions(L1,L2,t_span,k,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
+
+Generate the solution for a given linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
+
+"""
+function generate_basis_solution_fourier_functions(L1,L2,x_locations,t_span,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14,number_points=1000)
+
+    N = size(x_locations,1);
+    k = reduce(vcat,[-N/2:-1 0:N/2-1]); # Wavenumbers
+
+    u0 = spectral_coefficients_fourier_functions(L1,L2,k,initial_condition;number_points=number_points);
+
+    Dmatrix = zeros(Complex{Float64},size(u0,1),size(u0,1));
+
+    for j in 1:size(u0,1)
+        for i in 1:size(u0,1)
+                Dmatrix[i,j] = gauss_quad(L1,L2,(x)->((im*k[j]*exp(im*k[j]*x))*exp(-im*k[i]*x)),number_points)/gauss_quad(L1,L2,(x)->(exp(im*k[i]*x)*exp(-im*k[i]*x)),number_points);
+        end
+    end
+
+    p = Dmatrix;
+    # p = [L1,L2,basis]
+
+    prob = ODEProblem(pde_function,u0,t_span,p);
+    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt);
+
+    u_sol = zeros(size(sol.t,1),size(x_locations,1));
+    for i in 1:size(sol.t,1)
+        u_sol[i,:] = real.(spectral_approximation_fourier_functions(x_locations,k,sol.u[i]));
     end
     return u_sol
 end
@@ -272,7 +353,7 @@ Compute the Van Leer limiter \$\\Psi = \\frac{r + |r|}{1+r}\$ where ``r`` is the
 
 """
 function van_leer_limiter(r)
-    return (r .+abs.(r))./(1 .+r .+eps())
+    return (r .+abs.(r))./((1 .+r) .+eps())
 end
 
 """
@@ -328,6 +409,9 @@ function backward_upwind_limited(u_j,u_jneg,u_jnegg,u_jpos,nu)
     psi_j = van_leer_limiter(r_j);
     psi_jneg = van_leer_limiter(r_jneg);
 
+    # psi_j = 1;
+    # psi_jneg = 1;
+
     ux = zeros(size(u_j,2))
     ux = -nu.*(u_j-u_jneg)-(nu/2).*(1 .-nu).*psi_j.*(u_j-u_jneg)+(nu/2).*(1 .-nu).*(psi_jneg).*(u_jneg-u_jnegg);
     return ux
@@ -345,6 +429,9 @@ function forward_upwind_limited(u_j,u_jpos,u_jposs,u_jneg,nu)
     r_jpos = gradient_ratio_forward_jpos(u_j,u_jpos,u_jposs);
     psi_j = van_leer_limiter(r_j);
     psi_jpos = van_leer_limiter(r_jpos);
+
+    # psi_j = 1;
+    # psi_jpos = 1;
 
     ux = zeros(size(u_j,2));
     ux = -nu.*(u_jpos-u_j)-(nu/2).*(nu .+1).*psi_j.*(u_jpos-u_j)+(nu/2).*(nu .+1).*(psi_jpos).*(u_jposs-u_jpos);
@@ -395,6 +482,7 @@ function generate_bwlimitersoupwind_solution(L1,L2,t_end,N,initial_condition;dt=
         uxpos[1:end-2] = forward_upwind_limited(u_sol[i,1:end-2],u_sol[i,2:end-1],u_sol[i,3:end],vcat(u_sol[i,end],u_sol[i,1:end-3]),nuneg[1:end-2]);
 
         u_sol[i+1,:] = u_sol[i,:] .+ (uxneg .+ uxpos);
+
     end
     return u_sol
 end
@@ -451,6 +539,138 @@ function generate_bwlimitersoupwind_viscous_solution(L1,L2,t_end,N,initial_condi
         u_sol[i+1,:] = u_sol[i,:] .+ (uxneg .+ uxpos) .+ ux_viscous;
     end
     return u_sol
+end
+
+"""
+    minmod(x,y)
+
+"""
+function minmod(x,y)
+    return sign(x)*max(0,min(abs(x),y*sign(x)));
+end
+
+"""
+    function ub(ulv,urv)
+
+"""
+function ub(ulv,urv)
+    if ulv != urv
+        return ((1/2)*urv^2 - (1/2)*ulv^2) / (urv - ulv); # ̄u_{j+/-1/2}
+    else
+        return ulv
+    end
+end
+
+"""
+    function fl(ulv,urv,ubv)
+
+"""
+function fl(ulv,urv,ubv)
+    return (1/2).*((1/2).*ulv.^2 .+ (1/2).*urv.^2 .- abs.(ubv).*(urv .- ulv)); # f_{j+/-1/2}
+# fln(ulv,urv,ubv) = (1/2)*(flux.(urv) - flux.(ulv) - abs.(ubv).*(ulv - urv)); # f_{j+/-1/2}
+end
+
+"""
+    function ulpl(ujp,uj,ujn,kappa,omega)
+
+"""
+function ulpl(ujp,uj,ujn,kappa,omega)
+    return uj .+ ((1-kappa)/4).*minmod.((uj .- ujn),omega.*(ujp .- uj)) .+ ((1+kappa)/4).*minmod.((ujp .- uj),omega.*(uj .- ujn)); # u_{j+1/2}^L
+end
+
+"""
+    function urpl(ujpp,ujp,uj,kappa,omega)
+
+"""
+function urpl(ujpp,ujp,uj,kappa,omega)
+    return ujp  .- ((1+kappa)/4).*minmod.((ujp .- uj),omega.*(ujpp .- ujp)) .- ((1-kappa)/4).*minmod.((ujpp .- ujp),omega.*(ujp .- uj)); # u_{j+1/2}^R
+end
+
+"""
+    function ulnl(uj,ujn,ujnn,kappa,omega)
+
+"""
+function ulnl(uj,ujn,ujnn,kappa,omega)
+    return ujn .+ ((1-kappa)/4).*minmod.((ujn .- ujnn),omega.*(uj .- ujn)) .+ ((1+kappa)/4).*minmod.((uj .- ujn),omega.*(ujn .- ujnn)); # u_{j-1/2}^L
+end
+
+"""
+    function urnl(ujp,uj,ujn,kappa,omega)
+
+"""
+function urnl(ujp,uj,ujn,kappa,omega)
+    return uj .- ((1+kappa)/4).*minmod.((uj .- ujn),omega.*(ujp .- uj)) .- ((1-kappa)/4).*minmod.((ujp .- uj),omega.*(uj .- ujn)); # u_{j-1/2}^R
+end
+
+"""
+    function muscl_minmod_RHS!(du,u,p,t)
+
+"""
+function muscl_minmod_RHS!(du,u,p,t)
+    dx, kappa, omega = p;
+
+    ulpvp = zeros(size(u,1));
+    urpvp = zeros(size(u,1));
+    ulnvp = zeros(size(u,1));
+    urnvp = zeros(size(u,1));
+
+    # ulp(ujp,uj,ujn,omega)
+    ulpvp[2:end-1] .= ulpl(u[3:end],u[2:end-1],u[1:end-2],kappa,omega);
+    ulpvp[1] = ulpl(u[2],u[1],u[end],kappa,omega);
+    ulpvp[end] = ulpl(u[1],u[end],u[end-1],kappa,omega);
+
+    # urp(ujpp,ujp,uj,omega)
+    urpvp[1:end-2] .= urpl(u[3:end],u[2:end-1],u[1:end-2],kappa,omega);
+    urpvp[end-1] = urpl(u[1],u[end],u[end-1],kappa,omega);
+    urpvp[end] = urpl(u[2],u[1],u[end],kappa,omega);
+
+    ubpp = ub.(ulpvp,urpvp);
+    fpp = fl(ulpvp,urpvp,ubpp);
+
+    # uln(uj,ujn,ujnn,omega)
+    ulnvp[3:end] .= ulnl(u[3:end],u[2:end-1],u[1:end-2],kappa,omega);
+    ulnvp[2] = ulnl(u[2],u[1],u[end],kappa,omega);
+    ulnvp[1] = ulnl(u[1],u[end],u[end-1],kappa,omega);
+
+    # urn(ujp,uj,ujn,omega)
+    urnvp[2:end-1] .= urnl(u[3:end],u[2:end-1],u[1:end-2],kappa,omega);
+    urnvp[1] = urnl(u[2],u[1],u[end],kappa,omega);
+    urnvp[end] = urnl(u[1],u[end],u[end-1],kappa,omega);
+
+    ubnp = ub.(ulnvp,urnvp);
+    fnp = fl(ulnvp,urnvp,ubnp);
+
+    du .= -(1/dx).*(fpp .- fnp);
+end
+
+"""
+    function generate_muscl_minmod_solution(L1,L2,t_end,N,u0;dt=1e-4,kappa=-1)
+
+"""
+function generate_muscl_minmod_solution(L1,L2,t_end,N,u0;dt=1e-4,kappa=-1)
+
+    omega = ((3-kappa)/(1-kappa))
+
+    dL = abs(L2-L1);
+    # Set up periodic domain
+    j = reduce(vcat,[0:1:N-1]);
+    x = (dL.*j)./N;
+    dx = x[2]-x[1];
+    t = reduce(vcat,[0:dt:t_end]);
+
+    p = [dx,kappa,omega]
+    t_span = (0,t_end);
+
+    prob = ODEProblem(muscl_minmod_RHS!,u0,t_span,p);
+    sol = solve(prob,BS3(),reltol=1e-6,abstol=1e-8,saveat = dt);
+
+    u_sol = zeros(size(sol.t,1),size(x,1));
+    for i in 1:size(sol.t,1)
+        u_sol[i,:] = sol.u[i];
+    end
+
+    return u_sol
+
 end
 
 """

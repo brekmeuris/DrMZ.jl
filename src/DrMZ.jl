@@ -18,6 +18,7 @@ using Printf
 using ToeplitzMatrices
 using Statistics: mean, std
 using FastGaussQuadrature
+# using ForwardDiff: derivative
 
 # Export the functions for General.jl
 export error_se, error_rel, mse_error, norm_rel_error, ic_error, average_ic_error, average_error,
@@ -44,14 +45,21 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        backward_upwind, forward_upwind, backward_upwind_limited, forward_upwind_limited, central_difference,
        van_leer_limiter, gradient_ratio_backward_j, gradient_ratio_backward_jneg, gradient_ratio_forward_j, gradient_ratio_forward_jpos,
        generate_bwlimitersoupwind_solution, generate_bwlimitersoupwind_viscous_solution,
-       get_1D_energy_fft, get_1D_energy_basis
+       minmod, ub, fl, ulpl, urpl, ulnl, urnl,
+       muscl_minmod_RHS!, generate_muscl_minmod_solution,
+       get_1D_energy_fft, get_1D_energy_basis,
+       opnn_advection_pde_functions!,
+       generate_basis_solution_functions, generate_basis_solution_fourier_functions
 
 # Export the functions for DBasis.jl
 export basis_OpNN, build_basis, build_basis_redefinition,
        spectral_coefficients, spectral_approximation, spectral_matrix,
        quadratic_nonlinear_triple_product,
        save_basis,
-       orthonormal_check
+       orthonormal_check,
+       spectral_coefficients_functions, spectral_approximation_functions, spectral_coefficients_fourier_functions, spectral_approximation_fourier_functions,
+       first_derivative_product, second_derivative_product,
+       trunk_build, trunk_ortho_build, build_basis_functions
 
 # Load functions
 include("General.jl")
