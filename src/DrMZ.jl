@@ -7,7 +7,7 @@ using Flux.Data: DataLoader
 using Flux: mse
 using ProgressMeter: @showprogress
 using Distributions: MvNormal
-using LinearAlgebra: Symmetric, norm, eigmin, I, qr, diagm, svd, lq, Diagonal
+using LinearAlgebra
 using Random: randperm, AbstractRNG
 using Random
 using DifferentialEquations
