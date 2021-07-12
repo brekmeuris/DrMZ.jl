@@ -386,5 +386,6 @@ Compute the integral using Gauss-Legendre quadrature for the interval \$\\int_a^
 """
 function gauss_quad(a,b,func,number_points)
     nodes, weights = gausslegendre(number_points);
+    # nodes, weights = gausslobatto(number_points);
     return (b-a)/2*weights'*(func.(shifted_nodes(a,b,nodes)));
 end

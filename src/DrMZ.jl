@@ -18,6 +18,7 @@ using Printf
 using ToeplitzMatrices
 using Statistics: mean, std
 using FastGaussQuadrature
+# using QuadGK
 # using ForwardDiff: derivative
 
 # Export the functions for General.jl
@@ -47,9 +48,7 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        generate_bwlimitersoupwind_solution, generate_bwlimitersoupwind_viscous_solution,
        minmod, ub, fl, ulpl, urpl, ulnl, urnl,
        muscl_minmod_RHS!, generate_muscl_minmod_solution,
-       get_1D_energy_fft, get_1D_energy_basis,
-       opnn_advection_pde_functions!,
-       generate_basis_solution_functions, generate_basis_solution_fourier_functions
+       get_1D_energy_fft, get_1D_energy_basis
 
 # Export the functions for DBasis.jl
 export basis_OpNN, build_basis, build_basis_redefinition,
@@ -57,9 +56,7 @@ export basis_OpNN, build_basis, build_basis_redefinition,
        quadratic_nonlinear_triple_product,
        save_basis,
        orthonormal_check,
-       spectral_coefficients_functions, spectral_approximation_functions, spectral_coefficients_fourier_functions, spectral_approximation_fourier_functions,
-       first_derivative_product, second_derivative_product,
-       trunk_build, trunk_ortho_build, build_basis_functions
+       first_derivative_product, second_derivative_product
 
 # Load functions
 include("General.jl")

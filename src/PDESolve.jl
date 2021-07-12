@@ -82,17 +82,6 @@ function opnn_advection_pde!(du,u,p,t)
 end
 
 """
-    opnn_advection_pde_functions!(du,u,p,t)
-
-RHS for the advection equation ``u_t = - u_x`` for numerical integration in the custom basis space.
-
-"""
-function opnn_advection_pde_functions!(du,u,p,t)
-    Dmatrix = p;
-    du .= -Dmatrix*u;
-end
-
-"""
     opnn_advection_diffusion_pde!(du,u,p,t)
 
 RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numerical integration in the custom basis space where ν is the viscosity.
@@ -202,12 +191,8 @@ function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_func
     Dbasis = fourier_diff(basis,N,dL);
     Dmatrix = spectral_matrix(basis,Dbasis);
 
-    # Dmatrix = first_derivative_product(basis,Dbasis)
-
     D2basis = fourier_diff(Dbasis,N,dL);
     D2matrix = spectral_matrix(basis,D2basis);
-
-    # D2matrix = second_derivative_product(basis,D2basis)
 
     p = [Dmatrix,D2matrix,nu];
 
@@ -242,70 +227,6 @@ function generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_conditio
     u_sol = zeros(size(sol.t,1),size(basis,1));
     for i in 1:size(sol.t,1)
         u_sol[i,:] = spectral_approximation(basis,sol.u[i]);
-    end
-    return u_sol
-end
-
-"""
-    generate_basis_solution_functions(L1,L2,t_span,basis,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
-
-Generate the solution for a given linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
-
-"""
-function generate_basis_solution_functions(L1,L2,x_locations,t_span,basis,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14,number_points=1000)
-
-    u0 = spectral_coefficients_functions(L1,L2,basis,initial_condition;number_points=number_points);
-
-    Dmatrix = zeros(size(u0,1),size(u0,1));
-    for j in 1:size(u0,1)
-        for i in 1:size(u0,1)
-            Dmatrix[i,j] = gauss_quad(L1,L2,(x)->(gradient(basis[j],x)[1]*conj(basis[i](x))),number_points)/gauss_quad(L1,L2,(x)->(basis[i](x)*conj(basis[i](x))),number_points);
-        end
-    end
-
-    p = Dmatrix;
-    # p = [L1,L2,basis]
-
-    prob = ODEProblem(pde_function,u0,t_span,p);
-    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt);
-
-    u_sol = zeros(size(sol.t,1),size(x_locations,1));
-    for i in 1:size(sol.t,1)
-        u_sol[i,:] = spectral_approximation_functions(x_locations,basis,sol.u[i]);
-    end
-    return u_sol
-end
-
-"""
-    generate_basis_solution_fourier_functions(L1,L2,t_span,k,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
-
-Generate the solution for a given linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
-
-"""
-function generate_basis_solution_fourier_functions(L1,L2,x_locations,t_span,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14,number_points=1000)
-
-    N = size(x_locations,1);
-    k = reduce(vcat,[-N/2:-1 0:N/2-1]); # Wavenumbers
-
-    u0 = spectral_coefficients_fourier_functions(L1,L2,k,initial_condition;number_points=number_points);
-
-    Dmatrix = zeros(Complex{Float64},size(u0,1),size(u0,1));
-
-    for j in 1:size(u0,1)
-        for i in 1:size(u0,1)
-                Dmatrix[i,j] = gauss_quad(L1,L2,(x)->((im*k[j]*exp(im*k[j]*x))*exp(-im*k[i]*x)),number_points)/gauss_quad(L1,L2,(x)->(exp(im*k[i]*x)*exp(-im*k[i]*x)),number_points);
-        end
-    end
-
-    p = Dmatrix;
-    # p = [L1,L2,basis]
-
-    prob = ODEProblem(pde_function,u0,t_span,p);
-    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt);
-
-    u_sol = zeros(size(sol.t,1),size(x_locations,1));
-    for i in 1:size(sol.t,1)
-        u_sol[i,:] = real.(spectral_approximation_fourier_functions(x_locations,k,sol.u[i]));
     end
     return u_sol
 end
