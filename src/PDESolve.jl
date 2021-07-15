@@ -188,10 +188,14 @@ function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,pde_func
     u0 = spectral_coefficients(basis,initial_condition);
     dL = abs(L2-L1);
 
-    Dbasis = fourier_diff(basis,N,dL);
+    # Dbasis = fourier_diff(basis,N,dL);
+    Dbasis = fourier_diff(basis,size(initial_condition,1),dL);
+
     Dmatrix = spectral_matrix(basis,Dbasis);
 
-    D2basis = fourier_diff(Dbasis,N,dL);
+    # D2basis = fourier_diff(Dbasis,N,dL);
+    D2basis = fourier_diff(Dbasis,size(initial_condition,1),dL);
+
     D2matrix = spectral_matrix(basis,D2basis);
 
     p = [Dmatrix,D2matrix,nu];
@@ -604,21 +608,6 @@ function get_1D_energy_fft(u_solution) # To Do: Add and extraction of specific m
     energy = zeros(size(u_solution,1))
     for i in 1:size(u_solution,1)
         u_hat = fft_norm(u_solution[i,:]);
-        energy[i] = (1/2)*real((u_hat'*u_hat));
-    end
-    return energy
-end
-
-"""
-    function get_1D_energy_basis(basis,u_solution)
-
-Compute the energy in the custom basis space. The expansion coefficients are scaled by \$ \\frac{1}{\\sqrt(N)} \$ for comparison to the non-unitary Fourier coefficients.
-
-"""
-function get_1D_energy_basis(basis,u_solution) # To Do: Add and extraction of specific mode step
-    energy = zeros(size(u_solution,1))
-    for i in 1:size(u_solution,1)
-        u_hat = (1/sqrt(size(basis,2)))*spectral_coefficients(basis,u_solution[i,:]);
         energy[i] = (1/2)*real((u_hat'*u_hat));
     end
     return energy

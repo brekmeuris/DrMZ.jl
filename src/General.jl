@@ -187,51 +187,6 @@ function fourier_diff(sol,N,dL;format="matrix")
 end
 
 """
-    cheby_grid(N,a,b)
-
-Generate the grid of Chebyshev points on the interval ``[a,b]`` with `N` discretization points.
-
-"""
-function cheby_grid(N,a,b)
-    x = ((b+a)/2).+((b-a)/2)*cos.(pi*(0:N)/N);
-    return x
-end
-
-"""
-    cheby_diff_matrix(N,a,b)
-
-Generate the Chebyshev differentiation matrix for the interval ``[a,b]`` with `N` discretization points.
-
-"""
-function cheby_diff_matrix(N,a,b)
-    if N == 0
-        D = 0;
-        x = 1;
-        return D, x
-    else
-        x = ((b+a)/2).+((b-a)/2)*cos.(pi*(0:N)/N);
-        c = vcat(2, ones(N-1,1), 2).*(-1).^(0:N);
-        X = repeat(x,1,N+1);
-        dx = X-X';
-        D = (c*(1 ./c)')./(dx+I);
-        D = D - diagm(0 => sum(D,dims = 2)[:]);
-        return D; x
-    end
-end
-
-"""
-    cheby_diff(sol,N,dL)
-
-Compute the derivative using a Chebyshev differentiation matrix on the interval ``[a,b]`` with `N` discretization points.
-
-"""
-function cheby_diff(sol,N,L1,L2)
-    D, x = cheby_diff_matrix(N,L1,L2);
-    diff_sol = D*sol;
-    return diff_sol
-end
-
-"""
     trapz1(x_range,integrand)
 
 Numerical integration using the single-application trapezoidal rule.

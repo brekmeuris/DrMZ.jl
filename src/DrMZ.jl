@@ -25,7 +25,7 @@ using FastGaussQuadrature
 export error_se, error_rel, mse_error, norm_rel_error, ic_error, average_ic_error, average_error,
        periodic_fill_domain, periodic_fill_solution, solution_interpolation, reduced_initial_condition, solution_spatial_sampling, solution_temporal_sampling,
        fft_norm, ifft_norm,
-       fourier_diff, cheby_grid, cheby_diff_matrix,
+       fourier_diff,
        trapz, trapz1, simpson13, simpson38, simpson,
        shifted_nodes, gauss_quad
 
@@ -48,20 +48,20 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        generate_bwlimitersoupwind_solution, generate_bwlimitersoupwind_viscous_solution,
        minmod, ub, fl, ulpl, urpl, ulnl, urnl,
        muscl_minmod_RHS!, generate_muscl_minmod_solution,
-       get_1D_energy_fft, get_1D_energy_basis
+       get_1D_energy_fft
 
-# Export the functions for DBasis.jl
-export basis_OpNN, build_basis, build_basis_redefinition,
-       spectral_coefficients, spectral_approximation, spectral_matrix,
-       quadratic_nonlinear_triple_product,
-       save_basis,
-       orthonormal_check,
-       first_derivative_product, second_derivative_product
+# Export the functions for DBasis.jl - Temporarily removed for updating
+# export basis_OpNN, build_basis, build_basis_redefinition,
+#        spectral_coefficients, spectral_approximation, spectral_matrix,
+#        quadratic_nonlinear_triple_product,
+#        save_basis,
+#        orthonormal_check,
+#        first_derivative_product, second_derivative_product
 
 # Load functions
 include("General.jl")
 include("OperatorNN.jl")
 include("PDESolve.jl")
-include("DBasis.jl")
+# include("DBasis.jl") # Temporarily removed for updating
 
 end
