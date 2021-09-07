@@ -55,8 +55,7 @@ Compute the two-norm relative error between the `prediction` and `target` values
 """
 function norm_rel_error(target,prediction)
     if size(target) != size(prediction)
-        println("Target size and prediction size do not match!")
-        return nothing
+        error("Target size and prediction size do not match!")
     end
     error = zeros(size(target,1))
     for i in 1:size(target,1)
@@ -328,6 +327,8 @@ end
 
 Compute the shifted nodes for Gauss-Legendre quadrature from \$\\int_{-1}^1\$ to \$ \\int_a^b\$.
 
+DEPRECATE...
+
 """
 function shifted_nodes(a,b,xd)
     return (b-a)/2*xd.+(a+b)/2;
@@ -338,9 +339,132 @@ end
 
 Compute the integral using Gauss-Legendre quadrature for the interval \$\\int_a^b\$ for a given `func` using a specified `number_points`.
 
+DEPRECATE...
+
 """
 function gauss_quad(a,b,func,number_points)
     nodes, weights = gausslegendre(number_points);
-    # nodes, weights = gausslobatto(number_points);
     return (b-a)/2*weights'*(func.(shifted_nodes(a,b,nodes)));
+end
+
+"""
+    function gauss_legendre(N,L1,L2)
+
+Compute the nodes and weights for Gauss-Legendre quadrature with `N` discretization points and on the interval ``[L1,L2]``.
+
+"""
+function gauss_legendre(N,L1,L2)
+    nodes, weights = gausslegendre(N);
+    return ((L1+L2)/2).+((L2-L1)/2)*nodes, ((L2-L1)/2)*weights;
+end
+
+"""
+    function clenshaw_curtis(N,L1,L2)
+
+Compute the nodes and weights for Clenshaw-Curtis quadrature with `N` discretization points and on the interval ``[L1,L2]``.
+
+"""
+function clenshaw_curtis(N,L1,L2)
+    theta = pi*(0:N)/N;
+    x = -cos.(theta);
+    w = zeros(size(x,1));
+    ii = 2:N;
+    v = ones(N-1);
+    if mod(N,2) == 0
+        w[1] = 1/(N^2-1);
+        w[N+1] = w[1];
+        for k in 1:Int(N/2)-1
+            v = v - 2*cos.(2*k*theta[ii])/(4*k^2-1);
+        end
+        v = v - cos.(N*theta[ii])/(N^2-1);
+    else
+        w[1] = 1/(N^2);
+        w[N+1] = w[1];
+        for k in 1:Int((N-1)/2)
+            v = v - 2*cos.(2*k*theta[ii])/(4*k^2-1);
+        end
+    end
+    w[ii] = 2*v/N;
+    return ((L1+L2)/2).+((L2-L1)/2)*x, (L2-L1)/2*w
+end
+
+"""
+    function cheby_grid(N,L1,L2)
+
+Generate the grid of Chebyshev points on the interval ``[L1,L2]`` with `N` discretization points.
+
+"""
+function cheby_grid(N,L1,L2)
+    x = ((L1+L2)/2).+((L2-L1)/2)*(-cos.(pi*(0:N)/N));
+    return x
+end
+
+"""
+    function cheby_diff_matrix(N,L1,L2)
+
+Generate the Chebyshev differentiation matrix for the interval ``[L1,L2]`` with `N` discretization points.
+
+"""
+function cheby_diff_matrix(N,L1,L2)
+    if N == 0
+        D = 0;
+        x = 1;
+        return D, x
+    else
+        x = ((L1+L2)/2).+((L2-L1)/2)*(-cos.(pi*(0:N)/N));
+        c = vcat(2, ones(N-1,1), 2).*(-1).^(0:N);
+        X = repeat(x,1,N+1);
+        dx = X-X';
+        D = (c*(1 ./c)')./(dx+I);
+        D = D - diagm(0 => sum(D,dims = 2)[:]);
+        return D, x
+    end
+end
+
+"""
+    function cheby_diff(sol,N,L1,L2)
+
+Compute the derivative of using a Chebyshev differentiation matrix on the interval ``[L1,L2]`` with `N` discretization points.
+
+"""
+function cheby_diff(sol,N,L1,L2)
+    D, x = cheby_diff_matrix(N,L1,L2);
+    diff_sol = D*sol;
+    return diff_sol
+end
+
+"""
+    function trapezoid(N,L1,L2)
+
+Compute the nodes and weights for trapezoid rule with `N` discretization points and on the interval ``[L1,L2]``.
+
+"""
+function trapezoid(N,L1,L2)
+    dL = abs(L2-L1);
+    j = reduce(vcat,[0:1:N-1]);
+    x = (dL.*j)./N;
+    wi = ((L2-L1)/N);
+    w = repeat([wi],N);
+    return x, w
+end
+
+"""
+    orthonormal_check(basis,weights;tol = 1e-15)
+
+"""
+function orthonormal_check(basis,weights;tol = 1e-15)
+    W = diagm(0 => weights);
+    for i = 1:size(basis,2)
+        for j = 1:size(basis,2)
+            if i == j
+                if abs(sqrt(basis[:,i]'*W*basis[:,i]) - 1) > tol
+                    error("Not orthonormal to $tol... $i")
+                end
+            elseif i != j
+                if abs(basis[:,j]'*W*basis[:,i]) > tol
+                    error("Not orthogonal to $tol... $i vs $j")
+                end
+            end
+        end
+    end
 end

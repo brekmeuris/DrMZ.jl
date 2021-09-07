@@ -125,8 +125,7 @@ function generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
     values = rand(-1.0:(2.0/(number_functions*10)):1.0,(number_functions,2)); # alpha, beta parameters
     initial_base = vcat(values,[0.0 0.0]);
     if size(unique(initial_base,dims=2),1) != size(initial_base,1)
-        println("Duplicate multiplier sets or generating function included in data!")
-        return nothing
+        error("Duplicate multiplier sets or generating function included in data!")
     end
     initial_conditions = zeros(size(x_locations,1),number_functions);
     for i in 1:number_functions
@@ -143,8 +142,7 @@ Extract the specified `number_solution_points` randomly from the ``u(t,x)`` solu
 """
 function solution_extraction(x_locations,t_values,solution,initial_condition,number_solution_points)
     if number_solution_points >= size(solution,1)*size(solution,2)
-        println("Invalid number of test points for the given dataset size!")
-        return nothing
+        error("Invalid number of test points for the given dataset size!")
     else
         # Create a grid of the t,x data in the form of an array of tuples for accessing below
         t_x_grid = Array{Tuple{Float64,Float64}}(undef,(size(solution,1), size(solution,2)));

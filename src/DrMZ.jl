@@ -18,8 +18,6 @@ using Printf
 using ToeplitzMatrices
 using Statistics: mean, std
 using FastGaussQuadrature
-# using QuadGK
-# using ForwardDiff: derivative
 
 # Export the functions for General.jl
 export error_se, error_rel, mse_error, norm_rel_error, ic_error, average_ic_error, average_error,
@@ -27,7 +25,10 @@ export error_se, error_rel, mse_error, norm_rel_error, ic_error, average_ic_erro
        fft_norm, ifft_norm,
        fourier_diff,
        trapz, trapz1, simpson13, simpson38, simpson,
-       shifted_nodes, gauss_quad
+       shifted_nodes, gauss_quad, gauss_legendre,
+       clenshaw_curtis, cheby_grid, cheby_diff_matrix, cheby_diff,
+       trapezoid,
+       orthonormal_check
 
 # Export the functions for OperatorNN.jl
 export train_model, loss_all, predict, predict_min_max,
@@ -43,25 +44,21 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        quadratic_nonlinear_opnn, quadratic_nonlinear_opnn_pseudo,
        generate_fourier_solution,
        generate_basis_solution, generate_basis_solution_nonlinear,
-       backward_upwind, forward_upwind, backward_upwind_limited, forward_upwind_limited, central_difference,
-       van_leer_limiter, gradient_ratio_backward_j, gradient_ratio_backward_jneg, gradient_ratio_forward_j, gradient_ratio_forward_jpos,
-       generate_bwlimitersoupwind_solution, generate_bwlimitersoupwind_viscous_solution,
+       central_difference,
        minmod, ub, fl, ulpl, urpl, ulnl, urnl,
-       muscl_minmod_RHS!, generate_muscl_minmod_solution,
-       get_1D_energy_fft
+       muscl_minmod_RHS!, muscl_minmod_viscous_RHS!, generate_muscl_minmod_solution, generate_muscl_reduced,
+       get_1D_energy_fft,
+       get_1D_energy_custom,
+       mode_extractor, get_1D_energy_upwind
 
-# Export the functions for DBasis.jl - Temporarily removed for updating
-# export basis_OpNN, build_basis, build_basis_redefinition,
-#        spectral_coefficients, spectral_approximation, spectral_matrix,
-#        quadratic_nonlinear_triple_product,
-#        save_basis,
-#        orthonormal_check,
-#        first_derivative_product, second_derivative_product
+# Export the functions for DBasis.jl
+export trunk_build, build_basis, build_basis_redefinition,
+       expansion_coefficients, expansion_approximation
 
 # Load functions
 include("General.jl")
 include("OperatorNN.jl")
 include("PDESolve.jl")
-# include("DBasis.jl") # Temporarily removed for updating
+include("DBasis.jl")
 
 end
