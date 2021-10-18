@@ -65,6 +65,21 @@ function norm_rel_error(target,prediction)
 end
 
 """
+    norm_infinity_error(target,prediction)
+
+Compute the two-norm relative error between the `prediction` and `target` values.
+
+"""
+function norm_infinity_error(target,prediction)
+  error = zeros(size(target,1))
+  for i in 1:size(target,1)
+    diff = prediction[i,:]-target[i,:];
+    error[i] = maximum(abs.(diff),dims=1)[1];
+  end
+  return error
+end
+
+"""
     average_error(domain,error)
 
 Compute the average error using the trapezoid rule \$\\frac{1}{T} \\int_0^T error(t) dt\$.
@@ -146,21 +161,21 @@ function solution_interpolation(t_span_original,x_locations_original,t_span_inte
 end
 
 """
-    reduced_initial_condition(L1,L2,N,x_locations,initial_condition)
+    reduced_initial_condition(L1,L2,x_reduced,x_locations,initial_condition)
 
 Extract the ``x`` locations and intial condition values ``u(x)`` at a reduced number of equally spaced spatial locations.
 
 """
-function reduced_initial_condition(L1,L2,N,x_locations,initial_condition)
-    dL = abs(L2-L1);
-    j = reduce(vcat,[0:1:N-1]);
-    x_reduced = (dL.*j)./N;
+function reduced_initial_condition(L1,L2,x_reduced,x_locations,initial_condition)
+    # dL = abs(L2-L1);
+    # j = reduce(vcat,[0:1:N-1]);
+    # x_reduced = (dL.*j)./N;
     ind = [findall(x_reduced[i].==x_locations)[1] for i in 1:length(x_reduced)];
     ic_reduced = zeros(size(ind,1));
     for i in 1:size(ind,1)
         ic_reduced[i] = initial_condition[ind[i]];
     end
-    return x_reduced, ic_reduced
+    return ic_reduced
 end
 
 """

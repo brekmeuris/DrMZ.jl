@@ -236,7 +236,7 @@ function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,nodes,we
     for i in 1:size(sol.t,1)
         u_sol[i,:] = expansion_approximation(basis,sol.u[i]);
     end
-    return u_sol, Dmatrix, BCs
+    return u_sol, Dmatrix, BCs, sol
 end
 
 """

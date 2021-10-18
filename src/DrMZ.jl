@@ -20,7 +20,7 @@ using Statistics: mean, std
 using FastGaussQuadrature
 
 # Export the functions for General.jl
-export error_se, error_rel, mse_error, norm_rel_error, ic_error, average_ic_error, average_error,
+export error_se, error_rel, mse_error, norm_rel_error, norm_infinity_error, ic_error, average_ic_error, average_error,
        periodic_fill_domain, periodic_fill_solution, solution_interpolation, reduced_initial_condition, solution_spatial_sampling, solution_temporal_sampling,
        fft_norm, ifft_norm,
        fourier_diff,
@@ -33,8 +33,8 @@ export error_se, error_rel, mse_error, norm_rel_error, ic_error, average_ic_erro
 # Export the functions for OperatorNN.jl
 export train_model, loss_all, predict, predict_min_max,
        build_dense_model, build_branch_model, build_trunk_model,
-       exp_kernel_periodic, generate_sinusoidal_functions_2_parameter, generate_periodic_train_test, generate_periodic_functions, solution_extraction,
-       save_model, load_model, save_data, load_data, load_data_initial_conditions, load_data_train_test, load_data_initial_conditions,
+       exp_kernel_periodic, generate_sinusoidal_functions_2_parameter, generate_periodic_train_test_initial_conditions, generate_periodic_train_test, generate_periodic_train_test_initial_condition_load, generate_periodic_functions, solution_extraction,
+       save_model, load_model, save_data, load_data, load_data_initial_conditions, load_data_train_test, load_data_initial_conditions, save_data_initial_conditions,
        min_max_scaler, min_max_transform, standard_scaler, standard_transform
 
 # Export the functions for PDESolve.jl
@@ -42,7 +42,7 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        opnn_advection_pde!, opnn_advection_diffusion_pde!, opnn_inviscid_burgers_pde!, opnn_viscous_burgers_pde!,
        quadratic_nonlinear,
        quadratic_nonlinear_opnn, quadratic_nonlinear_opnn_pseudo,
-       generate_fourier_solution,
+       generate_fourier_solution, generate_periodic_train_test_muscl,
        generate_basis_solution, generate_basis_solution_nonlinear,
        central_difference,
        minmod, ub, fl, ulpl, urpl, ulnl, urnl,
@@ -59,6 +59,6 @@ export trunk_build, build_basis, build_basis_redefinition,
 include("General.jl")
 include("OperatorNN.jl")
 include("PDESolve.jl")
-include("DBasis.jl")
+# include("DBasis.jl")
 
 end
