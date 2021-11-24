@@ -32,7 +32,7 @@ To add the package from direct download from GitHub using Julia REPL:
 
 ## Running an example operator neural network:
 
-Under the ```examples``` directory there is an example script for the advection and advection-diffusion equation on the domain x in [0,2 pi], t in [0,1], and for periodic boundary conditions. The example script, ```advection_advection_diffusion_opnn.jl```, generates the data set, trains the neural network, and outputs a few results. The data is generated using a 128 mode Fourier expansion with f(sin^2(pi x)) sampled from a Gaussian random field to generate the training and testing initial conditions. To run this script, there are several additional packages that need to be installed/standalone installed in addition to the ```DrMZ``` package. To add these packages using Julia REPL:
+Under the ```examples``` directory there is an example script for the advection and advection-diffusion equation on the domain x in [0,2 pi], t in [0,1], and for periodic boundary conditions. The example script, ```advection_advection_diffusion_opnn.jl```, generates the data set, trains the neural network, and outputs a few results. The data is generated using a 128 mode Fourier expansion with f(sin^2(x/2)) sampled from a Gaussian random field to generate the training and testing initial conditions. To run this script, there are several additional packages that need to be installed/standalone installed in addition to the ```DrMZ``` package. To add these packages using Julia REPL:
 
 ``` ] add Flux Parameters LaTeXStrings ColorSchemes Plots PyPlot ```
 
