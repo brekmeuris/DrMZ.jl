@@ -6,7 +6,7 @@
 [![Coverage](https://codecov.io/gh/brekmeuris/DrMZ.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/brekmeuris/DrMZ.jl)
 
 
-This package, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks and constructing full and reduced order models based on the trained operator neural networks.
+This package, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks and constructing full and reduced order models based on the trained operator neural networks (pending).
 
 This package is in a pre-release state with each update potentially breaking. This module is set up to run on CPUs using double precision and during training will spawn (up to) as many threads as there are physical cores available. GPU support is available but needs testing and modification for single precision type consistency.
 
