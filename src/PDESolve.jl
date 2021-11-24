@@ -5,8 +5,7 @@ RHS for the advection equation ``u_t = - u_x`` for numerical integration in Four
 
 """
 function advection_pde!(duhat,uhat,p,t)
-    N, k, dL, nu = p;
-    alpha = 1.0;
+    N, k, dL, nu, alpha = p;
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -alpha*im*k.*uhat;
 end
@@ -18,8 +17,7 @@ RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numeric
 
 """
 function advection_diffusion_pde!(duhat,uhat,p,t)
-    N, k, dL, nu = p;
-    alpha = 1.0;
+    N, k, dL, nu, alpha = p;
     uhat[Int(N/2)+1] = 0; # Set the most negative mode to zero to prevent an asymmetry
     duhat .= -alpha*im*k.*uhat + nu*(im*k).^2 .*uhat;
 end
@@ -78,14 +76,14 @@ end
 Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion.
 
 """
-function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
+function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14,alpha=1.0)
     # Transform random initial condition to Fourier domain
     uhat0 = fft_norm(initial_condition);
     dL = abs(L2-L1);
 
     # Generate Fourier Galerkin solution for N
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
-    p = [N,k,dL,nu]
+    p = [N,k,dL,nu,alpha]
     t_length = Int(round(tspan[2]/dt)+1);
 
     # Solve the system of ODEs in Fourier domain

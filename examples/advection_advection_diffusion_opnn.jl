@@ -84,7 +84,7 @@ function generate_opnn_results(pde_function,pde_function_handle;random_integer =
     savefig(pltrand_test, @sprintf("random_ic_%s_%i.png",pde_function,rand_int))
 
     # M size Fourier solution for comparisons
-    u_fourier_M = generate_fourier_solution(args.L1,args.L2,args.tspan,args.num_sensors,ic,pde_function_handle);
+    u_fourier_M = generate_fourier_solution(args.L1,args.L2,args.tspan,args.num_sensors,ic,pde_function_handle)[1];
 
     pltexact = plot(heatmap(periodic_fill_domain(x),t,periodic_fill_solution(u_fourier_M),aspect_ratio=dL/args.tspan[2]),fillcolor=cgrad(ColorSchemes.viridis.colors),label=false,xlabel = L"x", ylabel = L"t",xlims=(x[1],x[end]),ylims=(0,args.tspan[2]))
     display(pltexact)
