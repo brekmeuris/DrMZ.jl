@@ -50,7 +50,7 @@ end
 """
     norm_rel_error(target,prediction)
 
-Compute the two-norm relative error between the `prediction` and `target` values.
+Compute the Euclidean two-norm relative error between the `prediction` and `target` values.
 
 """
 function norm_rel_error(target,prediction)
@@ -62,6 +62,22 @@ function norm_rel_error(target,prediction)
         error[i] = norm(prediction[i,:]-target[i,:])/norm(target[i,:]);
     end
     return error
+end
+
+"""
+    function norm_rel_error_continuous(target,prediction,weights)
+
+Compute the continuous two-norm relative error between the `prediction` and `target` values.
+
+"""
+function norm_rel_error_continuous(target,prediction,weights)
+  error = zeros(size(target,1))
+  W = diagm(0=>weights);
+  for i in 1:size(target,1)
+    diff = prediction[i,:]-target[i,:];
+    error[i] = sqrt(diff'*W*diff)/sqrt(target[i,:]'*W*target[i,:]);
+  end
+  return error
 end
 
 """
@@ -92,17 +108,13 @@ end
 """
     ic_error(target,prediction)
 
-Compute the relative error between the `prediction` and `target` values for an initial condition. If the `target` = 0, both the `prediction` and `target` are augmented by \$\\epsilon_{machine}\$.
+Compute the relative error between the `prediction` and `target` values for an initial condition. If the `target` = 0, the `target` in denomenator is augmented by \$\\epsilon_{machine}\$.
 
 """
 function ic_error(target,prediction)
     error = zeros(size(target,1));
     for i in 1:size(target,1)
-        if target[i] == 0.0
-            target[i] += eps();
-            prediction[i] += eps();
-        end
-        error[i] = (prediction[i]-target[i])/target[i];
+        error[i] = (prediction[i]-target[i])/(target[i] + eps());
     end
     return error
 end
@@ -201,16 +213,6 @@ function fourier_diff(sol,N,dL;format="matrix")
 end
 
 """
-    trapz1(x_range,integrand)
-
-Numerical integration using the single-application trapezoidal rule.
-
-"""
-function trapz1(h,f1,f2)
-    return h*((f1+f2)/2)
-end
-
-"""
     trapz(x_range,integrand)
 
 Numerical integration using the multi-application trapezoidal rule.
@@ -220,67 +222,6 @@ function trapz(x_range,integrand)
     int = 0.0;
     for i = 2:length(x_range)
         int += ((integrand[i-1] + integrand[i])/2)*(x_range[i] - x_range[i-1]);
-    end
-    return int
-end
-
-"""
-    simpson13(h,f1,f2)
-
-Numerical integration using the single-application Simpson's 1/3 rule.
-
-"""
-function simpson13(h,f1,f2,f3)
-    return 2*h*((f1+4*f2+f3)/6);
-end
-
-"""
-    simpson38(x_range,integrand)
-
-Numerical integration using the single-application Simpson's 3/8 rule.
-
-"""
-function simpson38(h,f1,f2,f3,f4)
-    return 3*h*((f1+3*(f2+f3)+f4)/8);
-end
-
-"""
-    simpson(x_range,integrand)
-
-Numerical integration using the multi-application Simpson's and trapezoid rules.
-
-"""
-function simpson(x_range,integrand)
-    h = x_range[2]-x_range[1];
-    k = 1;
-    int = 0.0;
-    for i in 2:length(x_range)-1
-        hf = x_range[i+1]-x_range[i];
-        if abs(h-hf) < 0.000001
-            if k == 3
-                int += simpson13(h,integrand[i-3],integrand[i-2],integrand[i-1]);
-                k -= 1;
-            else
-                k += 1;
-            end
-        else
-            if k == 1
-                int += trapz1(h,integrand[i-1],integrand[i]);
-            elseif k == 2
-                int += simpson13(h,integrand[i-2],integrand[i-1],integrand[i]);
-            else
-                int += simpson38(h,integrand[i-3],integrand[i-2],integrand[i-1],integrand[i]);
-            end
-            k = 1;
-        end
-        h = hf;
-    end
-    if k == 1
-        int += trapz1(h,integrand[end-1],integrand[end]);
-    elseif k == 2
-        int += simpson13(h,integrand[end-2],integrand[end-1],integrand[end]);
-    else
-        int += simpson38(h,integrand[end-3],integrand[end-2],integrand[end-1],integrand[end]);
     end
     return int
 end
@@ -335,31 +276,6 @@ Compute the IFFT normalized by \$N\$.
 function ifft_norm(solution)
     N = size(solution,1);
     return N*ifft(solution)
-end
-
-"""
-    function shifted_nodes(a,b,xd)
-
-Compute the shifted nodes for Gauss-Legendre quadrature from \$\\int_{-1}^1\$ to \$ \\int_a^b\$.
-
-DEPRECATE...
-
-"""
-function shifted_nodes(a,b,xd)
-    return (b-a)/2*xd.+(a+b)/2;
-end
-
-"""
-    function gauss_quad(a,b,func,number_points)
-
-Compute the integral using Gauss-Legendre quadrature for the interval \$\\int_a^b\$ for a given `func` using a specified `number_points`.
-
-DEPRECATE...
-
-"""
-function gauss_quad(a,b,func,number_points)
-    nodes, weights = gausslegendre(number_points);
-    return (b-a)/2*weights'*(func.(shifted_nodes(a,b,nodes)));
 end
 
 """

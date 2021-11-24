@@ -20,16 +20,16 @@ PyPlot.matplotlib.rc("mathtext",fontset="cm")
     num_test_functions::Int = Int(2*num_train_functions);
     num_sol_points::Int = 100;
     L1::Float64 = 0.0;
-    L2::Float64 = 1.0;
+    L2::Float64 = 2*pi;
     tspan::Tuple = (0.0,1.0);
     n_epoch::Int = 25000;
     N::Int = num_sensors;
     branch_layers::Int = 2; # Branch depth
     branch_neurons::Array{Tuple} = [(Int(num_sensors),num_sensors),(num_sensors,N)]; # Branch layers input and output dimensions - quantity of tuples must match branch depth
-    branch_activations::Array = [relu,identity]; # Activation functions for each branch layer
+    branch_activations::Array = [tanh,identity]; # Activation functions for each branch layer
     trunk_layers::Int = 3; # Trunk depth
     trunk_neurons::Array{Tuple} = [(2,num_sensors),(num_sensors,num_sensors),(num_sensors,N)]; # Trunk layers input and output dimensions - quantity of tuples must match trunk depth
-    trunk_activations::Array = [relu,relu,relu]; # Activation functions for each trunk layer
+    trunk_activations::Array = [tanh,tanh,tanh]; # Activation functions for each trunk layer
 end
 
 function generate_train(pde_function,pde_function_handle;kws...)
@@ -37,7 +37,7 @@ function generate_train(pde_function,pde_function_handle;kws...)
     args = Args(;);
 
     # Generate training and testing data
-    train_data, test_data = generate_periodic_train_test(args.L1,args.L2,args.tspan,args.num_sensors,args.num_train_functions,args.num_test_functions,args.num_sol_points,pde_function_handle);
+    train_data, test_data = generate_periodic_train_test(args.tspan,args.num_sensors,args.num_train_functions,args.num_test_functions,args.num_sol_points,pde_function_handle);
     save_data(train_data,test_data,args.num_train_functions,args.num_test_functions,args.num_sol_points,pde_function)
 
     branch = build_dense_model(args.branch_layers,args.branch_neurons,args.branch_activations);
@@ -70,7 +70,7 @@ function generate_opnn_results(pde_function,pde_function_handle;random_integer =
         rand_int = rand(1:args.num_test_functions);
         ic = test_ic[:,rand_int*args.num_sol_points];
     elseif random_integer == "exact"
-        ic = sin.(pi*x).^2;
+        ic = sin.(x/2).^2;
         rand_int = 0;
     else
         rand_int = random_integer;

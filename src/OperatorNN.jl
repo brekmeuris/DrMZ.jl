@@ -17,23 +17,6 @@ function predict(branch,trunk,initial_condition,x_locations,t_values)
 end
 
 """
-    predict_min_max(branch,trunk,initial_condition,x_locations,t_values,scale_object)
-
-Uses the trained operator neural net branch and trunk to predict solution at specified output locations when using min-max normalization
-
-"""
-function predict_min_max(branch,trunk,initial_condition,x_locations,t_values,scale_object)
-    u = zeros(size(t_values,1),size(x_locations,1));
-    bk = branch(initial_condition)';
-    for i in 1:size(t_values,1)
-        for j in 1:size(x_locations,1)
-            u[i,j] = bk*trunk(min_max_transform(vcat(t_values[i],x_locations[j]),scale_object));
-        end
-    end
-    return u
-end
-
-"""
     loss_all(branch,trunk,initial_conditon,solution_location,target_value)
 
 Compute the mean squared error (MSE) for a complete dataset.
@@ -208,7 +191,7 @@ function generate_periodic_train_test(t_span,number_sensors,number_train_functio
         random_ics = generate_periodic_functions(fnc,x_full,Int(number_train_functions + number_test_functions),length_scale)
         dL = abs(L2-L1);
         # Set up x domain and wave vector for spectral solution
-        x = trapezoid(number_sensors,L1,L2)[1];
+        x = trapezoid((number_sensors-1),L1,L2)[1];
         k = reduce(vcat,(2*π/dL)*[0:Int(number_sensors-1)/2-1 -Int(number_sensors-1)/2:-1]);
     end
 
@@ -265,12 +248,12 @@ function generate_periodic_train_test(t_span,number_sensors,number_train_functio
 end
 
 """
-    generate_periodic_train_test_initial_condition_load(train_ics,test_ics,t_span,number_sensors,number_test_functions,number_train_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,batch=number_solution_points,dt=1e-3,nu_val=0.1,domain="periodic",fnc=(x)->sin(x/2)^2)
+    generate_periodic_train_test_initial_condition_load(train_ics,test_ics,t_span,number_sensors,number_test_functions,number_train_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,batch=number_solution_points,dt=1e-3,nu_val=0.1,domain="periodic")
 
 Generate the training and testing data for a specified `pde_function_handle` for periodic boundary conditions using a Fourier spectral method. Loads previously generated initial conditions, see [`generate_periodic_train_test`](@ref) for generating all data in one go.
 
 """
-function generate_periodic_train_test_initial_condition_load(train_ics,test_ics,t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,batch=number_solution_points,dt_size=1e-3,nu_val=0.1,domain="periodic",fnc=(x)->sin(x/2)^2)
+function generate_periodic_train_test_initial_condition_load(train_ics,test_ics,t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,batch=number_solution_points,dt_size=1e-3,nu_val=0.1,domain="periodic")
 
     if domain == "periodic"
         dL = abs(L2-L1);
@@ -280,7 +263,7 @@ function generate_periodic_train_test_initial_condition_load(train_ics,test_ics,
     elseif domain == "full"
         dL = abs(L2-L1);
         # Set up x domain and wave vector for spectral solution
-        x = trapezoid(number_sensors,L1,L2)[1];
+        x = trapezoid((number_sensors-1),L1,L2)[1];
         k = reduce(vcat,(2*π/dL)*[0:Int(number_sensors-1)/2-1 -Int(number_sensors-1)/2:-1]);
     end
 
@@ -472,7 +455,7 @@ function load_data_train_test(number_train_functions,number_test_functions,pde_f
 end
 
 """
-    load_data_initial_conditions(number_train_functions,number_test_functions)
+    load_data_initial_conditions(number_train_functions,number_test_functions,pde_function)
 
 Load the initial conditions from the `train_data` and `test_data`.
 
@@ -493,55 +476,4 @@ function save_data_initial_conditions(number_train_functions,number_test_functio
     @save @sprintf("train_ic_data_%i_%s.bson",number_train_functions,pde_function) train_ic
     @save @sprintf("test_ic_data_%i_%s.bson",number_test_functions,pde_function) test_ic
     return train_ic, test_ic
-end
-
-"""
-    min_max_scaler(x;dim = 2)
-
-Compute the required scaler to shift the features to a given range.
-
-"""
-function min_max_scaler(x;dim = 2)
-    scaler = 1.0 ./ (maximum(x,dims=dim) .- minimum(x,dims=dim));
-    min = -minimum(x,dims=dim).*scaler;
-    return scaler, min
-end
-
-"""
-    min_max_transform(x,scale_object;min = 0,max = 1)
-
-Apply [`min_max_scaler`](@ref) to shift the features.
-
-"""
-function min_max_transform(x,scale_object;min = 0,max = 1)
-    x_scaled = deepcopy(x);
-    x_scaled .*= scale_object[1][:];
-    x_scaled .+= scale_object[2][:];
-    x_scaled .*= (max-min);
-    x_scaled .+= min;
-    return x_scaled
-end
-
-"""
-    standard_scaler(x;dim=2)
-
-Compute the required scaler to shift the features to have zero mean and unit variance.
-
-"""
-function standard_scaler(x;dim=2)
-    x_mean = mean(x,dims=dim);
-    x_std = std(x,dims=dim,corrected=false)
-    return x_mean, x_std
-end
-
-"""
-    standard_transform(x,scale_object)
-
-Apply [`standard_scaler`](@ref) to shift the features.
-
-"""
-function standard_transform(x,scale_object)
-    x_scaled = deepcopy(x);
-    x_scaled .-= scale_object[1][:];
-    x_scaled ./= scale_object[2][:];
 end

@@ -73,87 +73,6 @@ function quadratic_nonlinear(uhat,N,dL,alpha)
 end
 
 """
-    opnn_advection_pde!(du,u,p,t)
-
-RHS for the advection equation ``u_t = - u_x`` for numerical integration in the custom basis space.
-
-"""
-function opnn_advection_pde!(du,u,p,t)
-    Dmatrix, D2matrix, nu, BCs = p;
-    du .= (-Dmatrix+BCs)*u;
-end
-
-"""
-    opnn_advection_diffusion_pde!(du,u,p,t)
-
-RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numerical integration in the custom basis space where ν is the viscosity.
-
-"""
-function opnn_advection_diffusion_pde!(du,u,p,t)
-    Dmatrix, D2matrix, nu, BCs = p;
-    du .= -Dmatrix*u .+ nu*D2matrix*u;
-end
-
-"""
-    opnn_viscous_burgers_pde!(du,u,p,t)
-
-RHS for the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$ for numerical integration in the custom basis space where ν is the viscosity.
-
-"""
-function opnn_viscous_burgers_pde!(du,u,p,t)
-    D2matrix, basis, dL, N, nu, L1, L2, weights = p;
-    u_nonlinear = quadratic_nonlinear_opnn_pseudo(basis,u,dL,N,L1,L2,weights);
-    du .= nu*D2matrix*u .- u_nonlinear;
-end
-
-"""
-    opnn_inviscid_burgers_pde!(du,u,p,t)
-
-RHS for the inviscid Burgers equation \$u_t = - u u_x\$ for numerical integration in the custom basis space.
-
-"""
-function opnn_inviscid_burgers_pde!(du,u,p,t)
-    D2matrix, basis, dL, N, nu, L1, L2, weights = p;
-    u_nonlinear = quadratic_nonlinear_opnn_pseudo(basis,u,dL,N,L1,L2,weights);
-    du .= -u_nonlinear;
-
-end
-
-"""
-    quadratic_nonlinear_opnn(uhat,nonlinear_triple)
-
-Compute the triple product sum \$\\sum_{k=1}^N \\sum_{l=1}^N u_k u_l \\sum_{j=0}^{N-1} \\phi_{jk} \\phi_{jl}^{'} \\phi_{jm}^{*}\$ resulting from the quadratic nonlinearity of Burgers equation \$u u_x\$ in custom basis space.
-
-"""
-function quadratic_nonlinear_opnn(uhat,nonlinear_triple)
-    quadratic_nonlinear = zeros(size(uhat,1));
-    for m in 1:size(uhat,1)
-        inner_loop = 0.0;
-        for l in 1:size(uhat,1)
-            for k in 1:size(uhat,1)
-                inner_loop += uhat[k]*uhat[l]*nonlinear_triple[k,l,m];
-            end
-        end
-        quadratic_nonlinear[m] = inner_loop;
-    end
-    return quadratic_nonlinear
-end
-
-"""
-    quadratic_nonlinear_opnn_pseudo(basis,uhat,dL,N)
-
-Compute the quadratic nonlinearity of Burgers equation \$u u_x\$ in custom basis space using a pseudo spectral type approach. At each step, transform solution to real space and compute the product of the real space solution and the spatial derivative of the real space solution prior to transforming back to custom basis space.
-
-"""
-function quadratic_nonlinear_opnn_pseudo(basis,uhat,dL,N,L1,L2,weights);
-    u = expansion_approximation(basis,uhat);
-    du = fourier_diff(u,N,dL);
-    udu = u.*du;
-    uduhat = expansion_coefficients(basis,udu,L1,L2,weights);
-    return uduhat
-end
-
-"""
     generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
 
 Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion.
@@ -178,97 +97,6 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
         u_sol[j,:] = real.(ifft_norm(sol.u[j]));
     end
     return u_sol, sol.u, k
-end
-
-"""
-    generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,nodes,weights,number_points,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
-
-Generate the solution for a given linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
-
-"""
-function generate_basis_solution(L1,L2,t_span,N,basis,initial_condition,nodes,weights,number_points,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14,derivative="finite")
-    u0 = expansion_coefficients(basis,initial_condition,L1,L2,weights);
-    dL = abs(L2-L1);
-    nodes_f = trapezoid(number_points,L1,L2)[1];
-    nodes_c = cheby_grid(number_points,L1,L2);
-
-    if (sum(nodes) - sum(nodes_f)) == 0.0
-        if derivative == "finite"
-            itp_basis = [interpolate((nodes_f,), basis[:,i], Gridded(Linear())) for i in 1:size(basis,2)];
-            Dbasis = zeros(size(nodes_f,1),size(basis,2));
-            for i in 1:size(basis,2)
-                for j in 1:size(nodes_f,1)
-                    Dbasis[j,i] = Interpolations.gradient.(Ref(itp_basis[i]), nodes_f[j])[1];
-                end
-            end
-            itp_Dbasis = [interpolate((nodes_f,), Dbasis[:,i], Gridded(Linear())) for i in 1:size(Dbasis,2)];
-            D2basis = zeros(size(nodes_f,1),size(Dbasis,2));
-            for i in 1:size(Dbasis,2)
-                for j in 1:size(nodes_f,1)
-                    D2basis[j,i] = Interpolations.gradient.(Ref(itp_Dbasis[i]), nodes_f[j])[1];
-                end
-            end
-            BCs = zeros(size(basis,2),size(basis,2));
-        else
-            Dbasis = fourier_diff(basis,number_points,dL;format="spectral");
-            D2basis = fourier_diff(Dbasis,number_points,dL;format="spectral");
-            BCs = zeros(size(basis,2),size(basis,2));
-        end
-    elseif (sum(nodes) - sum(nodes_c)) == 0.0
-        Dbasis = cheby_diff(basis,number_points,L1,L2);
-        D2basis = cheby_diff(Dbasis,number_points,L1,L2);
-        BCs = basis[1,:]*(basis[end,:]-basis[1,:])';
-        # BCs = zeros(size(basis,2),size(basis,2));
-    else
-        error("Cannot interpret the node spacing for differentiation")
-    end
-
-    W = diagm(0 => weights);
-    Dmatrix = basis'*W*Dbasis;
-    D2matrix = basis'*W*D2basis;
-
-    p = [Dmatrix,D2matrix,nu,BCs];
-
-    prob = ODEProblem(pde_function,u0,t_span,p);
-    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt);
-
-    u_sol = zeros(size(sol.t,1),size(basis,1));
-    for i in 1:size(sol.t,1)
-        u_sol[i,:] = expansion_approximation(basis,sol.u[i]);
-    end
-    return u_sol, Dmatrix, BCs, sol
-end
-
-"""
-    generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition,nodes,weights,number_points,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
-
-Generate the solution for a given non-linear `pde_function` and `initial_conditon` on a periodic domain using a `N` mode custom basis expansion.
-
-ADD IN SUPPORT FOR NON-UNIFORM GRIDS
-
-"""
-function generate_basis_solution_nonlinear(L1,L2,t_span,N,basis,initial_condition,nodes,weights,number_points,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
-    u0 = expansion_coefficients(basis,initial_condition,L1,L2,weights);
-    dL = abs(L2-L1);
-    nodes_f = trapezoid(number_points,L1,L2)[1];
-
-    Dbasis = fourier_diff(basis,number_points,dL;format="spectral");
-    D2basis = fourier_diff(Dbasis,number_points,dL;format="spectral");
-
-    W = diagm(0 => weights);
-    Dmatrix = basis'*W*Dbasis;
-    D2matrix = basis'*W*D2basis;
-
-    p = [D2matrix,basis,dL,N,nu,L1,L2,weights];
-
-    prob = ODEProblem(pde_function,u0,t_span,p);
-    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt);
-
-    u_sol = zeros(size(sol.t,1),size(basis,1));
-    for i in 1:size(sol.t,1)
-        u_sol[i,:] = expansion_approximation(basis,sol.u[i]);
-    end
-    return u_sol
 end
 
 """
@@ -453,15 +281,7 @@ function generate_muscl_minmod_solution(L1,L2,t_end,N,u0,pde_function_handle;dt=
 
     prob = ODEProblem(pde_function_handle,u0,t_span,p);
     sol = solve(prob,BS3(),reltol=1e-6,abstol=1e-8,saveat = dt);
-    # sol = solve(prob,DP5(),adaptive=false,dt = dt);
-    # sol = solve(prob,Trapezoid(autodiff=false),reltol=1e-6,abstol=1e-8,saveat = dt);
-    # sol = solve(prob,Rodas4(autodiff=false),reltol=1e-6,abstol=1e-8,saveat = dt);
-    # sol = solve(prob,Rosenbrock23(autodiff=false),saveat = dt);
-
-
-
-
-
+   
     u_sol = zeros(size(sol.t,1),size(x,1));
     for i in 1:size(sol.t,1)
         u_sol[i,:] = sol.u[i];
@@ -475,13 +295,14 @@ end
     function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic_func,pde_function_handle;kappa=-1,nu=0.1)
 
 """
-function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic_func,pde_function_handle;kappa=-1,nu=0.1)
+# function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic_func,pde_function_handle;kappa=-1,nu=0.1)
+function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic,pde_function_handle;kappa=-1,nu=0.1)
     dL = abs(L2 - L1);
     j = reduce(vcat,[0:1:N-1]);
     x = (dL.*j)./N;
     j_full = reduce(vcat,[0:1:M-1]);
     x_full = (dL.*j_full)./M;
-    ic = ic_func.(x_full);
+    # ic = ic_func.(x_full);
     u_full = generate_muscl_minmod_solution(L1,L2,t_end,M,ic,pde_function_handle;dt=dt,kappa=kappa,nu=nu)
     u_reduced = solution_spatial_sampling(x,x_full,u_full);
     return u_full, u_reduced
@@ -503,17 +324,30 @@ function get_1D_energy_fft(u_solution) # To Do: Add and extraction of specific m
 end
 
 """
-    function get_1D_energy_custom(basis,u_solution,L1,L2,weights)
+    function get_1D_energy_custom(basis,u_solution,L1,L2,weights;multiplier=1/(4*pi))
 
-Compute the energy in the custom basis domain: \$ \\frac{1}{2} \\sum \\vert \\a_k \\vert^2 \$.
+Compute the energy in the custom basis domain: \$ \\frac{1}{2} \\sum \\vert \\a_k \\vert^2 \$. Multiplier defaults to \$ \\frac{1}{4\\pi} \$ to match the Fourier calculation.
 
 """
-function get_1D_energy_custom(basis,u_solution,L1,L2,weights)
+function get_1D_energy_custom(basis,u_solution,L1,L2,weights;multiplier=1/(4*pi))
     energy = zeros(size(u_solution,1));
     for i in 1:size(u_solution,1)
         a_hat = expansion_coefficients(basis,u_solution[i,:],L1,L2,weights);
-        energy[i] = (1/2)*(a_hat'*a_hat);
+        # energy[i] = (1/2)*(a_hat'*a_hat);
+        energy[i] = multiplier*(a_hat'*a_hat);
     end
+    return energy
+end
+
+"""
+    function get_1D_energy_custom_coefficients(u_coefficients;zeta=1/(4*pi))
+
+Compute the energy in the custom basis domain: \$ \\zeta \\sum \\vert \\a_k \\vert^2 \$. \$ \\zeta \$ defaults to \$ \\frac{1}{4\\pi} \$ to match the Fourier calculation.
+
+"""
+function get_1D_energy_custom_coefficients(u_coefficients;zeta=1/(4*pi))
+        # energy[i] = (1/2)*(a_hat'*a_hat);
+        energy = zeta*(u_coefficients'*u_coefficients);
     return energy
 end
 
@@ -539,4 +373,16 @@ function get_1D_energy_upwind(u_solution_full,u_solution,N)
         energy[i] = (1/2)*real(u_upwind_fft'*u_upwind_fft);
     end
     return energy
+end
+
+"""
+    spectral_approximation_fourier(x_locations,k,coefficients)
+
+"""
+function spectral_approximation_fourier(x_locations,k,coefficients)
+    approximation = zeros(size(x_locations,1));
+    for i = 1:length(k)
+        approximation += coefficients[i]*exp.(im*k[i]*(x_locations));
+    end
+    return approximation
 end
