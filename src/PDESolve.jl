@@ -98,7 +98,7 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
 end
 
 """
-    function central_difference(u_j,u_jpos,u_jneg,mu)
+    central_difference(u_j,u_jpos,u_jneg,mu)
 
 Compute the second order central difference for the viscous term of the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$. `mu` is equal to \$ \\frac{\\nu}{\\Delta x^2}\$.
 
@@ -118,7 +118,7 @@ function minmod(x,y)
 end
 
 """
-    function ub(ulv,urv)
+    ub(ulv,urv)
 
 """
 function ub(ulv,urv)
@@ -130,7 +130,7 @@ function ub(ulv,urv)
 end
 
 """
-    function fl(ulv,urv,ubv)
+    fl(ulv,urv,ubv)
 
 """
 function fl(ulv,urv,ubv)
@@ -139,7 +139,7 @@ function fl(ulv,urv,ubv)
 end
 
 """
-    function ulpl(ujp,uj,ujn,kappa,omega)
+    ulpl(ujp,uj,ujn,kappa,omega)
 
 """
 function ulpl(ujp,uj,ujn,kappa,omega)
@@ -147,7 +147,7 @@ function ulpl(ujp,uj,ujn,kappa,omega)
 end
 
 """
-    function urpl(ujpp,ujp,uj,kappa,omega)
+    urpl(ujpp,ujp,uj,kappa,omega)
 
 """
 function urpl(ujpp,ujp,uj,kappa,omega)
@@ -155,7 +155,7 @@ function urpl(ujpp,ujp,uj,kappa,omega)
 end
 
 """
-    function ulnl(uj,ujn,ujnn,kappa,omega)
+    ulnl(uj,ujn,ujnn,kappa,omega)
 
 """
 function ulnl(uj,ujn,ujnn,kappa,omega)
@@ -163,7 +163,7 @@ function ulnl(uj,ujn,ujnn,kappa,omega)
 end
 
 """
-    function urnl(ujp,uj,ujn,kappa,omega)
+    urnl(ujp,uj,ujn,kappa,omega)
 
 """
 function urnl(ujp,uj,ujn,kappa,omega)
@@ -171,7 +171,7 @@ function urnl(ujp,uj,ujn,kappa,omega)
 end
 
 """
-    function muscl_minmod_RHS!(du,u,p,t)
+    muscl_minmod_RHS!(du,u,p,t)
 
 """
 function muscl_minmod_RHS!(du,u,p,t)
@@ -212,7 +212,7 @@ function muscl_minmod_RHS!(du,u,p,t)
 end
 
 """
-    function muscl_minmod_viscous_RHS!(du,u,p,t)
+    muscl_minmod_viscous_RHS!(du,u,p,t)
 
 """
 function muscl_minmod_viscous_RHS!(du,u,p,t)
@@ -260,7 +260,7 @@ function muscl_minmod_viscous_RHS!(du,u,p,t)
 end
 
 """
-    function generate_muscl_minmod_solution(L1,L2,t_end,N,u0,pde_function_handle;dt=1e-4,kappa=-1)
+    generate_muscl_minmod_solution(L1,L2,t_end,N,u0,pde_function_handle;dt=1e-4,kappa=-1)
 
 """
 function generate_muscl_minmod_solution(L1,L2,t_end,N,u0,pde_function_handle;dt=1e-4,kappa=-1,nu=0.1)
@@ -290,7 +290,7 @@ function generate_muscl_minmod_solution(L1,L2,t_end,N,u0,pde_function_handle;dt=
 end
 
 """
-    function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic_func,pde_function_handle;kappa=-1,nu=0.1)
+    generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic_func,pde_function_handle;kappa=-1,nu=0.1)
 
 """
 # function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic_func,pde_function_handle;kappa=-1,nu=0.1)
@@ -307,7 +307,7 @@ function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic,pde_function_handle;kappa=
 end
 
 """
-    function get_1D_energy_fft(u_solution)
+    get_1D_energy_fft(u_solution)
 
 Compute the energy in the Fourier domain using the scaling of \$ \\frac{1}{N} \$. Note: this does not include the 2π multiplier found in Parseval's identity for Fourier series and computes \$ \\frac{1}{2} \\sum \\vert \\hat{u}_k \\vert^2 \$.
 
@@ -322,23 +322,22 @@ function get_1D_energy_fft(u_solution) # To Do: Add and extraction of specific m
 end
 
 """
-    function get_1D_energy_custom(basis,u_solution,L1,L2,weights;multiplier=1/(4*pi))
+    get_1D_energy_custom(basis,u_solution,L1,L2,weights;multiplier=1/(4*pi))
 
 Compute the energy in the custom basis domain: \$ \\frac{1}{2} \\sum \\vert \\a_k \\vert^2 \$. Multiplier defaults to \$ \\frac{1}{4\\pi} \$ to match the Fourier calculation.
 
 """
-function get_1D_energy_custom(basis,u_solution,L1,L2,weights;multiplier=1/(4*pi))
+function get_1D_energy_custom(basis,u_solution,nodes,weights;multiplier=1/(4*pi))
     energy = zeros(size(u_solution,1));
     for i in 1:size(u_solution,1)
-        a_hat = expansion_coefficients(basis,u_solution[i,:],L1,L2,weights);
-        # energy[i] = (1/2)*(a_hat'*a_hat);
-        energy[i] = multiplier*(a_hat'*a_hat);
+        a_hat = expansion_coefficients(basis,u_solution[i,:],nodes,weights);
+        energy[i] = get_1D_energy_custom_coefficients(a_hat,zeta=multiplier);
     end
     return energy
 end
 
 """
-    function get_1D_energy_custom_coefficients(u_coefficients;zeta=1/(4*pi))
+    get_1D_energy_custom_coefficients(u_coefficients;zeta=1/(4*pi))
 
 Compute the energy in the custom basis domain: \$ \\zeta \\sum \\vert \\a_k \\vert^2 \$. \$ \\zeta \$ defaults to \$ \\frac{1}{4\\pi} \$ to match the Fourier calculation.
 
@@ -350,7 +349,7 @@ function get_1D_energy_custom_coefficients(u_coefficients;zeta=1/(4*pi))
 end
 
 """
-    function mode_extractor(uhat,N)
+    mode_extractor(uhat,N)
 
 """
 function mode_extractor(uhat,N)
@@ -361,7 +360,7 @@ function mode_extractor(uhat,N)
 end
 
 """
-    function get_1D_energy_upwind(u_solution_full,u_solution,N)
+    get_1D_energy_upwind(u_solution_full,u_solution,N)
 
 """
 function get_1D_energy_upwind(u_solution_full,u_solution,N)

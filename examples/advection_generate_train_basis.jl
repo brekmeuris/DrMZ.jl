@@ -1,4 +1,6 @@
 ENV["JULIA_CUDA_SILENT"] = true
+# Change the working directory to the file location
+cd(@__DIR__)
 
 using DrMZ
 using Parameters: @with_kw
@@ -97,10 +99,6 @@ function generate_opnn_results(pde_function,pde_function_handle;random_integer =
     display(pltpredict)
     savefig(pltpredict, @sprintf("opnn_solution_random_ic_epochs_%i_%s_%i.png",args.n_epoch,pde_function,rand_int))
 
-    pltfinal = plot(x,u_fourier_M[end,:],label="Fourier")
-    plot!(pltfinal,x,u_predict[end,:],label="OpNN")
-    display(pltfinal)
-
     opnn_error = norm_rel_error(u_fourier_M,u_predict);
     opnn_error = plot(t,opnn_error,legend=:outerbottom,foreground_color_legend = nothing,label="Operator network average error $(@sprintf("%.4e",average_error(t,opnn_error)))",xlabel = L"t", ylabel = "Rel. Error",xlims=(t[1],t[end]))
     display(opnn_error)
@@ -108,14 +106,46 @@ function generate_opnn_results(pde_function,pde_function_handle;random_integer =
 
 end
 
-# Change the working directory to the file location
-cd(@__DIR__)
+function generate_basis_function_results(pde_function;kws...)
+
+    args = Args(;);
+
+    # Load all the data
+    branch, trunk, train_ic, train_loc, train_sol, test_ic, test_loc, test_sol = load_data(args.n_epoch,args.num_train_functions,args.num_test_functions,pde_function)
+
+    M = Flux.outdims(trunk[end],train_ic[:,1])[1];
+    x, w = gauss_legendre(args.num_sensors,0,2*pi);
+
+    basis, S = build_basis(trunk,args.L1,args.L2,M,x,w);
+
+    pltsing = plot((1:1:length(S)),S,label=false,seriestype=:scatter,yaxis = :log10,xlabel = L"k", ylabel = L"$\sigma_k$",xlims=(1,length(S)))
+    display(pltsing)
+    savefig(pltsing, @sprintf("singular_values_%s_%i_functions.png",pde_function,M))
+  
+    x_plot = (args.L1:0.01:args.L2);
+    pltbasis = plot(x_plot,basis[1].(x_plot),legend=false,label=L"$\phi_1$",xlabel=L"x",xlims=(x[1],x[end]),linewidth=1.5)
+    for i in 2:M
+      plot!(pltbasis,x_plot,basis[i].(x_plot),legend=false,label=L"$\phi_{$i}$",linewidth=1.5)
+    end
+    display(pltbasis)
+    savefig(pltbasis, @sprintf("basis_functions_%s_%i_functions.png",pde_function,M))
+
+    ak = expansion_coefficients(basis,exp.(sin.(x)),x,w);
+
+    pltak = plot((1:1:length(basis)),log10.(abs.(ak)),label=false,seriestype=:scatter,xlabel = L"k", ylabel = L"|$a_k$|")
+    display(pltak)
+    savefig(pltak, @sprintf("expansion_coefficients_%s_%i_functions_exp_sinx.png",pde_function,M))
+
+    save_basis(basis,M,pde_function)
+
+end
 
 # Generate data and train the model
 generate_train("advection_equation",advection_pde!)
-generate_train("advection_diffusion_equation",advection_diffusion_pde!)
 
 # Generate results - enter "none", an integer value (e.g. 975), or "exact" to specify an initial condition
 # If testing ability of network to extrapolate beyond the training interval, comment out the generation functions above and adjust the Arg tspan
 generate_opnn_results("advection_equation",advection_pde!;random_integer = "exact")
-generate_opnn_results("advection_diffusion_equation",advection_diffusion_pde!;random_integer = "exact")
+
+# Generate the custom basis functions from the trained trunk functions
+generate_basis_function_results("advection_equation")

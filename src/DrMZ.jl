@@ -19,6 +19,7 @@ using ToeplitzMatrices
 using Statistics: mean, std
 using FastGaussQuadrature
 using ForwardDiff
+using LegendrePolynomials
 
 # Export the functions for General.jl
 export error_se, error_rel, mse_error, norm_rel_error, norm_rel_error_continuous, norm_infinity_error, ic_error, average_ic_error, average_error,
@@ -29,7 +30,8 @@ export error_se, error_rel, mse_error, norm_rel_error, norm_rel_error_continuous
        gauss_legendre,
        clenshaw_curtis, cheby_grid, cheby_diff_matrix, cheby_diff,
        trapezoid,
-       orthonormal_check
+       orthonormal_check,
+       legendre_norm, legendre_norm_collect
 
 # Export the functions for OperatorNN.jl
 export train_model, loss_all, predict,
@@ -50,14 +52,15 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        spectral_approximation_fourier
 
 # Export the functions for DBasis.jl
-# export trunk_build, build_basis,
-#        expansion_coefficients, expansion_approximation,
-#        basis_derivative
+export trunk_build, trunk_ortho_build, build_basis,
+       basis_eval, expansion_coefficients, expansion_approximation,
+       basis_derivative, 
+       save_basis, load_basis
 
 # Load functions
 include("General.jl")
 include("OperatorNN.jl")
 include("PDESolve.jl")
-# include("DBasis.jl")
+include("DBasis.jl")
 
 end

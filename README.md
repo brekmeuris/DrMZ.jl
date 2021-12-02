@@ -32,18 +32,22 @@ To add the package from direct download from GitHub using Julia REPL:
 
 ## Running an example operator neural network:
 
-Under the ```examples``` directory there is an example script for the advection and advection-diffusion equation on the domain x in [0,2 pi], t in [0,1], and for periodic boundary conditions. The example script, ```advection_advection_diffusion_opnn.jl```, generates the data set, trains the neural network, and outputs a few results. The data is generated using a 128 mode Fourier expansion with f(sin^2(x/2)) sampled from a Gaussian random field to generate the training and testing initial conditions. To run this script, there are several additional packages that need to be installed/standalone installed in addition to the ```DrMZ``` package. To add these packages using Julia REPL:
+Under the ```examples``` directory there is an example script for the advection equation on the domain x in [0,2 pi], t in [0,1], and for periodic boundary conditions. The example script, ```advection_generate_train_basis.jl```, generates the data set, trains the neural network, generates a set of custom basis vectors, and outputs a few results. The data is generated using a 128 mode Fourier expansion with f(sin^2(x/2)) sampled from a Gaussian random field to generate the training and testing initial conditions. To run this script, there are several additional packages that need to be installed/standalone installed in addition to the ```DrMZ``` package. To add these packages using Julia REPL:
 
 ``` ] add Flux Parameters LaTeXStrings ColorSchemes Plots PyPlot ```
 
 If you encounter any errors loading all the packages in one go, just add each package sequentially and it should resolve any issues. Once all the additional packages have been installed, the example script can be ran from a terminal session using:
 
-```julia advection_advection_diffusion_opnn.jl```
+```julia advection_generate_train_basis.jl```
 
 The first time this script is ran it may take some time to indicate the dataset is being built as it will show a few warnings and install/build additional required packages.
 
 ## References:
 
-The operator neural networks were implemented based on the structure presented by Lu Lu et al. (2020).
+The operator neural networks were implemented based on the structure presented by Lu Lu et al. (2020):
 
 Lu, L., Jin, P., & Karniadakis, G. E. (2020). DeepONet: Learning nonlinear operators for identifying differential equations based on the universal approximation theorem of operators. arXiv preprint arXiv:1910.03193v3.
+
+Details about the custom basis function construction and examples for using the functions to evolve PDEs can be found in:
+
+Meuris, B., Qadeer, S., & Stinis, P. (2021). Machine-learning custom-made basis functions for partial differential equations. arXiv preprint arXiv:2111.05307.

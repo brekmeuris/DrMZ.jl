@@ -279,7 +279,7 @@ function ifft_norm(solution)
 end
 
 """
-    function gauss_legendre(N,L1,L2)
+    gauss_legendre(N,L1,L2)
 
 Compute the nodes and weights for Gauss-Legendre quadrature with `N` discretization points and on the interval ``[L1,L2]``.
 
@@ -290,7 +290,7 @@ function gauss_legendre(N,L1,L2)
 end
 
 """
-    function clenshaw_curtis(N,L1,L2)
+    clenshaw_curtis(N,L1,L2)
 
 Compute the nodes and weights for Clenshaw-Curtis quadrature with `N` discretization points and on the interval ``[L1,L2]``.
 
@@ -320,7 +320,7 @@ function clenshaw_curtis(N,L1,L2)
 end
 
 """
-    function cheby_grid(N,L1,L2)
+    cheby_grid(N,L1,L2)
 
 Generate the grid of Chebyshev points on the interval ``[L1,L2]`` with `N` discretization points.
 
@@ -331,7 +331,7 @@ function cheby_grid(N,L1,L2)
 end
 
 """
-    function cheby_diff_matrix(N,L1,L2)
+    cheby_diff_matrix(N,L1,L2)
 
 Generate the Chebyshev differentiation matrix for the interval ``[L1,L2]`` with `N` discretization points.
 
@@ -353,7 +353,7 @@ function cheby_diff_matrix(N,L1,L2)
 end
 
 """
-    function cheby_diff(sol,N,L1,L2)
+    cheby_diff(sol,N,L1,L2)
 
 Compute the derivative of using a Chebyshev differentiation matrix on the interval ``[L1,L2]`` with `N` discretization points.
 
@@ -365,7 +365,7 @@ function cheby_diff(sol,N,L1,L2)
 end
 
 """
-    function trapezoid(N,L1,L2)
+    trapezoid(N,L1,L2)
 
 Compute the nodes and weights for trapezoid rule with `N` discretization points and on the interval ``[L1,L2]``.
 
@@ -380,10 +380,10 @@ function trapezoid(N,L1,L2)
 end
 
 """
-    orthonormal_check(basis,weights;tol = 1e-15)
+    orthonormal_check(basis,weights;tol = 1e-12)
 
 """
-function orthonormal_check(basis,weights;tol = 1e-15)
+function orthonormal_check(basis,weights;tol = 1e-12)
     W = diagm(0 => weights);
     for i = 1:size(basis,2)
         for j = 1:size(basis,2)
@@ -393,9 +393,26 @@ function orthonormal_check(basis,weights;tol = 1e-15)
                 end
             elseif i != j
                 if abs(basis[:,j]'*W*basis[:,i]) > tol
-                    error("Not orthogonal to $tol... $i vs $j")
+                    error("Not orthogonal to $tol... $i vs $j \n Review the singular value spectrum...")
                 end
             end
         end
     end
+end
+
+"""
+    legendre_norm(x,L1,L2,n)
+
+"""
+function legendre_norm(x,L1,L2,n)
+    return ((2*n+1)/(L2-L1))^(1/2)*Pl(((2*x-L1-L2)/(L2-L1)),n)
+end
+
+"""
+    legendre_norm_collect(x,L1,L2,nmax)
+
+"""
+function legendre_norm_collect(x,L1,L2,nmax)
+    n_list = (0:1:nmax);
+    return ((2*n_list.+1)/(L2-L1)).^(1/2).*parent(collectPl(((2*x-L1-L2)/(L2-L1)),lmax=nmax));
 end

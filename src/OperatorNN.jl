@@ -472,8 +472,7 @@ end
 Saves the initial conditions from the `train_ic` and `test_ic`.
 
 """
-function save_data_initial_conditions(number_train_functions,number_test_functions,pde_function)
+function save_data_initial_conditions(train_ic,test_ic,number_train_functions,number_test_functions,pde_function)
     @save @sprintf("train_ic_data_%i_%s.bson",number_train_functions,pde_function) train_ic
     @save @sprintf("test_ic_data_%i_%s.bson",number_test_functions,pde_function) test_ic
-    return train_ic, test_ic
 end
