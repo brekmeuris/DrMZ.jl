@@ -400,6 +400,28 @@ function load_model(n_epoch,pde_function)
 end
 
 """
+    load_branch(n_epoch,pde_function)
+
+Load the trained `branch` neural networks.
+
+"""
+function load_branch(n_epoch,pde_function)
+    @load @sprintf("branch_epochs_%i_%s.bson",n_epoch,pde_function) branch
+    return branch
+end
+
+"""
+    load_trunk(n_epoch,pde_function)
+
+Load the trained `trunk` neural networks.
+
+"""
+function load_trunk(n_epoch,pde_function)
+    @load @sprintf("trunk_epochs_%i_%s.bson",n_epoch,pde_function) trunk
+    return trunk
+end
+
+"""
     save_data(train_data,test_data,number_train_functions,number_test_functions,number_solution_points,pde_function)
 
 Save the `train_data` and `test_data`.

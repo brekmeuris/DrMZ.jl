@@ -37,7 +37,7 @@ export error_se, error_rel, mse_error, norm_rel_error, norm_rel_error_continuous
 export train_model, loss_all, predict,
        build_dense_model, build_branch_model, build_trunk_model,
        exp_kernel_periodic, generate_sinusoidal_functions_2_parameter, generate_periodic_train_test_initial_conditions, generate_periodic_train_test, generate_periodic_train_test_initial_condition_load, generate_periodic_functions, solution_extraction,
-       save_model, load_model, save_data, load_data, load_data_initial_conditions, load_data_train_test, load_data_initial_conditions, save_data_initial_conditions
+       save_model, load_model, load_branch, load_trunk, save_data, load_data, load_data_initial_conditions, load_data_train_test, load_data_initial_conditions, save_data_initial_conditions
 
 # Export the functions for PDESolve.jl
 export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_burgers_pde!,

@@ -20,9 +20,9 @@ function trunk_ortho_build(utilde,L1,L2,nodes,weights)
     N = size(utilde,2);
     for i in 1:N
         coeffs = zeros(size(utilde,1));
-        coeffs[1] = utilde[:,i]'*W*legendre_norm.(nodes,L1,L2,0);
+        coeffs[1] = legendre_norm.(nodes,L1,L2,0)'*W*utilde[:,i];
         for j in 1:(size(utilde,1)-1)
-            coeffs[j+1] = utilde[:,i]'*W*legendre_norm.(nodes,L1,L2,j)
+            coeffs[j+1] = legendre_norm.(nodes,L1,L2,j)'*W*utilde[:,i]
         end
         push!(trunk_ortho, (x) -> coeffs'*legendre_norm_collect.(x,L1,L2,(size(utilde,1)-1)));
     end
@@ -54,7 +54,7 @@ function build_basis(trunk,L1,L2,M,nodes,weights)
     ortho_trunk_func = trunk_ortho_build(utilde,L1,L2,nodes,weights);
 
     # Check if the functions are orthonormal to a specified precision at the specified nodes
-    orthonormal_check(basis_eval(ortho_trunk_func,nodes),weights)
+    orthonormal_check(basis_eval(ortho_trunk_func,nodes),weights;tol=1e-12)
 
     return ortho_trunk_func, F.S
 end
@@ -87,10 +87,10 @@ function expansion_coefficients(basis::Array{Any,1},fnc,nodes,weights)
     return basis_eval(basis,nodes)'*diagm(0 => weights)*fnc
 end
 function expansion_coefficients(basis::Array{Float64,2},fnc::Function,nodes,weights)
-    return basis'*diagm(0 => weights)*fnc.(nodes)#./diag(basis'*diagm(0=>weights)*basis)
+    return basis'*diagm(0 => weights)*fnc.(nodes)
 end
 function expansion_coefficients(basis::Array{Float64,2},fnc,nodes,weights)
-    return basis'*diagm(0 => weights)*fnc#./diag(basis'*diagm(0=>weights)*basis)
+    return basis'*diagm(0 => weights)*fnc
 end
 
 """
