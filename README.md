@@ -6,9 +6,9 @@
 [![Coverage](https://codecov.io/gh/brekmeuris/DrMZ.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/brekmeuris/DrMZ.jl)
 
 
-This package, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks and constructing full and reduced order models based on the trained operator neural networks (pending).
+This package, Deep renormalized Mori-Zwanzig (DrMZ) contains the various submodules for generating data and training operator neural networks and constructing full and reduced order models based on the trained operator neural networks (full and reduced model work is pending).
 
-This package is in a pre-release state with each update potentially breaking. This module is set up to run on CPUs using double precision and during training will spawn (up to) as many threads as there are physical cores available. GPU support is available but needs testing and modification for single precision type consistency.
+This package is in a pre-release state with each update potentially breaking. The module is set up to run on CPUs using double precision and during training will spawn (up to) as many threads as there are physical cores available. GPU support is available but needs testing and modification for single precision type consistency.
 
 
 ## Adding this package:
@@ -36,11 +36,11 @@ Under the ```examples``` directory there is an example script for the advection 
 
 ``` ] add Flux Parameters LaTeXStrings ColorSchemes Plots PyPlot ```
 
-If you encounter any errors loading all the packages in one go, just add each package sequentially and it should resolve any issues. Once all the additional packages have been installed, the example script can be ran from a terminal session using:
+If you encounter any errors loading all the packages in one go, just add each package sequentially, and it should resolve any issues. Once all the additional packages have been installed, the example script can be run from a terminal session using:
 
 ```julia advection_generate_train.jl```
 
-The first time this script is ran it may take some time to indicate the dataset is being built as it will show a few warnings and install/build additional required packages.
+The first time this script is run it may take some time to indicate the dataset is being built as it will show a few warnings and install/build additional required packages.
 
 ## References:
 
