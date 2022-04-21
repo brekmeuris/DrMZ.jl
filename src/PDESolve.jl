@@ -33,7 +33,7 @@ function viscous_burgers_pde!(duhat,uhat,p,t)
     alpha = 1.0;
     uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
     uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
-    duhat .= -nu*k.^2 .*uhat .- uhat_nonlinear;
+    duhat .= -nu*k.^2 .*uhat - uhat_nonlinear;
 end
 
 """
@@ -71,9 +71,273 @@ function quadratic_nonlinear(uhat,N,dL,alpha)
 end
 
 """
+    kdv_explicit_pde!(duhat,uhat,p,t)
+
+Explicit portion of the RHS for the Korteweg-de Vries equation \$u_t = - u u_x - \\nu^2 u_{xxx}\$ for numerical integration numerical integration in Fourier space.
+
+"""
+function kdv_explicit_pde!(duhat,uhat,p,t)
+    N, dL, nu = p;
+    alpha = 1;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= -uhat_nonlinear;
+end
+
+"""
+    kdv_implicit_pde!(duhat,uhat,p,t)
+
+Implicit portion of the RHS for the Korteweg-de Vries equation \$u_t = - u u_x - \\nu^2 u_{xxx}\$ for numerical integration numerical integration in Fourier space.
+
+"""
+function kdv_implicit_pde!(duhat,uhat,p,t)
+    N, dL, nu = p;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
+    duhat .= nu^2*im.*k.^3 .*uhat;
+end
+
+"""
+    kdv_pde!(duhat,uhat,p,t)
+
+RHS for the Korteweg-de Vries equation \$u_t = - u u_x - \\nu^2 u_{xxx}\$ for numerical integration numerical integration in Fourier space.
+
+"""
+function kdv_pde!(duhat,uhat,p,t)
+    N, dL, nu = p;
+    alpha = 1;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= -uhat_nonlinear + nu^2*im.*k.^3 .*uhat;
+end
+
+"""
+    ks_explicit_pde!(duhat,uhat,p,t)
+
+Explicit portion of the RHS for the Kuramoto-Sivashinsky equation \$u_t = - u u_x -u_{xx} - \\nu u_{xxxx}\$ for numerical integration numerical integration in Fourier space.
+
+"""
+function ks_explicit_pde!(duhat,uhat,p,t)
+    N, dL, nu = p;
+    alpha = 1.0;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= -uhat_nonlinear;
+end
+
+"""
+    ks_implicit_pde!(duhat,uhat,p,t)
+
+Implicit portion of the RHS for the Kuramoto-Sivashinsky equation \$u_t = - u u_x -u_{xx} - \\nu u_{xxxx}\$ for numerical integration numerical integration in Fourier space.
+
+"""
+function ks_implicit_pde!(duhat,uhat,p,t)
+    N, dL, nu = p;
+    alpha = 1.0;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
+    duhat .= (k.^2-nu*k.^4).*uhat;
+end
+
+"""
+    ks_pde!(duhat,uhat,p,t)
+
+RHS for the Kuramoto-Sivashinsky equation \$u_t = - u u_x -u_{xx} - \\nu u_{xxxx}\$ for numerical integration numerical integration in Fourier space.
+
+"""
+function ks_pde!(duhat,uhat,p,t)
+    N, dL, nu = p;
+    alpha = 1.0;
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
+    uhat[Int(N/2)+1] = 0.0; # Set the most negative mode to zero to prevent an asymmetry
+    uhat_nonlinear = quadratic_nonlinear(uhat,N,dL,alpha);
+    duhat .= -uhat_nonlinear + (k.^2-nu*k.^4).*uhat;
+end
+
+"""
+    rhs_advection!(du,u,p,t)
+
+RHS for the advection equation ``u_t = - u_x`` for numerical integration in custom basis space using discontinuous Galerkin method.
+
+"""
+function rhs_advection!(du,u,p,t)
+    du .= p*u;
+  end
+
+"""
+    rhs_advection_diffusion!(du,u,p,t)
+
+RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ for numerical integration in custom basis space using discontinuous Galerkin method and where ν is the viscosity.
+
+"""
+function rhs_advection_diffusion!(du,u,p,t)
+    p1, p2 = p
+    du .= p1*u + p2*u;
+end
+
+"""
+    burgers_flux(u_right,u_left)
+
+Numerical flux for Burgers nonlinearity, \$f(u) = \\frac{1}{2}u^2\$, for use with discontinuous Galerkin method.
+
+"""
+function burgers_flux(u_right,u_left)
+    return (1/2)*((u_right+abs(u_right))/2-(u_left-abs(u_left))/2)^2
+end
+
+"""
+    quadratic_nonlinear_triple_product_basis(basis_nodes,Dbasis_nodes,nodes,weights)
+
+"""
+function quadratic_nonlinear_triple_product_basis(basis_nodes,Dbasis_nodes,nodes,weights)
+
+    nonlinear_triple = zeros(size(basis_nodes,2),size(basis_nodes,2),size(basis_nodes,2))
+    for k in 1:size(basis_nodes,2)
+        for l in 1:size(basis_nodes,2)
+            for m in 1:size(basis_nodes,2)
+                inner_loop = 0.0;
+                for p in 1:size(basis_nodes,1)
+                    inner_loop += basis_nodes[p,k]*basis_nodes[p,l]*conj(Dbasis_nodes[p,m])*weights[p];
+                end
+                nonlinear_triple[k,l,m] = inner_loop;
+  
+            end
+        end
+    end
+    return nonlinear_triple
+end
+
+"""
+    quadratic_nonlinear_basis(u,nonlinear_triple)
+
+"""
+function quadratic_nonlinear_basis(u,nonlinear_triple)
+    quadratic_nonlinear = zeros(size(u,1));
+    for m in 1:size(u,1)
+        inner_loop = 0.0;
+        for l in 1:size(u,1)
+            for k in 1:size(u,1)
+                inner_loop += u[k]*u[l]*nonlinear_triple[k,l,m];
+            end
+        end
+        quadratic_nonlinear[m] = 1/2*inner_loop;
+    end
+    return quadratic_nonlinear
+end
+
+"""
+    rhs_viscous_burgers!(du,u,p,t)
+
+RHS for the viscous Burgers equation \$u_t = - u u_x + ν u_{xx}\$ for numerical integration in custom basis space using Discontinuous Galerking method and where ν is the viscosity.
+
+"""
+function rhs_viscous_burgers!(du,u,p,t)
+    basis_left, basis_right, diffmat, triple_product = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis(u,triple_product); # Triple product approach
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left) + diffmat*u;
+end
+
+"""
+    rhs_inviscid_burgers!(du,u,p,t)
+
+RHS for the inviscid Burgers equation \$u_t = - u u_x\$ for numerical integration in custom basis space using discontinuous Galerkin method.
+
+"""
+function rhs_inviscid_burgers!(du,u,p,t)
+    basis_left, basis_right, triple_product = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis(u,triple_product); # Triple product approach
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left);
+end
+
+"""
+    rhs_explicit_kdv!(du,u,p,t)
+
+Explicit portion of the RHS for the Korteweg-de Vries equation \$u_t = - u u_x - \\nu^2 u_{xxx}\$ for numerical integration in custom basis space using discontinuous Galerkin method.
+
+"""
+function rhs_explicit_kdv!(du,u,p,t)
+    basis_left, basis_right, diff3mat, triple_product = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis(u,triple_product); # Triple product approach
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left);
+end
+
+"""
+    rhs_implicit_kdv!(du,u,p,t)
+
+Implicit portion of the RHS for the Korteweg-de Vries equation \$u_t = - u u_x - \\nu^2 u_{xxx}\$ for numerical integration in custom basis space using discontinuous Galerkin method.
+
+"""
+function rhs_implicit_kdv!(du,u,p,t)
+    basis_left, basis_right, diff3mat, triple_product = p;
+    du .= diff3mat*u;
+end
+
+"""
+    rhs_kdv!(du,u,p,t)
+
+RHS for the Korteweg-de Vries equation \$u_t = - u u_x - \\nu^2 u_{xxx}\$ for numerical integration in custom basis space using discontinuous Galerkin method.
+
+"""
+function rhs_kdv!(du,u,p,t)
+    basis_left, basis_right, diff3mat, triple_product = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis(u,triple_product); # Triple product approach
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left) + diff3mat*u;
+end
+
+"""
+    rhs_explicit_ks!(du,u,p,t)
+
+Explicit portion of the RHS for the Kuramoto-Sivashinsky equation \$u_t = - u u_x -u_{xx} - \\nu u_{xxxx}\$ for numerical integration in custom basis space using discontinuous Galerkin method.
+
+"""
+function rhs_explicit_ks!(du,u,p,t)
+    basis_left, basis_right, diffmat, diff4mat, triple_product = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis(u,triple_product); # Triple product approach
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left);
+end
+
+"""
+    rhs_implicit_ks!(du,u,p,t)
+
+Implicit portion of the RHS for the Kuramoto-Sivashinsky equation \$u_t = - u u_x -u_{xx} - \\nu u_{xxxx}\$ for numerical integration in custom basis space using discontinuous Galerkin method.
+
+"""
+function rhs_implicit_ks!(du,u,p,t)
+    basis_left, basis_right, diffmat, diff4mat, triple_product = p;
+    du .= diffmat*u + diff4mat*u;
+end
+
+"""
+    rhs_ks!(du,u,p,t)
+
+RHS for the Kuramoto-Sivashinsky equation \$u_t = - u u_x -u_{xx} - \\nu u_{xxxx}\$ for numerical integration in custom basis space using discontinuous Galerkin method.
+
+"""
+function rhs_ks!(du,u,p,t)
+    basis_left, basis_right, diffmat, diff4mat, triple_product = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis(u,triple_product); # Triple product approach
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left) + diffmat*u + diff4mat*u;
+end
+
+"""
     generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14)
 
-Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion.
+Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion and a RK45 solver.
 
 """
 function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,nu=0.1,rtol=1e-10,atol=1e-14,alpha=1.0)
@@ -84,18 +348,147 @@ function generate_fourier_solution(L1,L2,tspan,N,initial_condition,pde_function;
     # Generate Fourier Galerkin solution for N
     k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
     p = [N,k,dL,nu,alpha]
-    t_length = Int(round(tspan[2]/dt)+1);
 
     # Solve the system of ODEs in Fourier domain
     prob = ODEProblem(pde_function,uhat0,tspan,p);
     sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt)
 
-    u_sol = zeros(t_length,N);
+    u_sol = zeros(size(sol.t,1),N);
     for j in 1:size(sol.t,1) # Reshape output and plot
         u_sol[j,:] = real.(ifft_norm(sol.u[j]));
     end
     return u_sol, sol.u, k
 end
+
+"""
+    generate_fourier_solution_esdirk(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-4,rtol=1e-8,atol=1e-12,nu=0.1)
+
+Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion and a ESDIRK4 solver.
+
+"""
+function generate_fourier_solution_esdirk(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-4,rtol=1e-8,atol=1e-12,nu=0.1)
+
+    # Transform random initial condition to Fourier domain
+    uhat0 = fft_norm(initial_condition);
+    dL = abs(L2-L1);
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
+  
+    # Generate Fourier Galerkin solution for N
+    p = [N,dL,nu];
+    t_length = tspan[2]/dt+1;
+  
+    # Solve the system of ODEs in Fourier domain
+    prob = ODEProblem(pde_function,uhat0,tspan,p);
+    sol = solve(prob,Kvaerno4(autodiff=false,linsolve=LinSolveFactorize(lu!)),reltol=rtol,abstol=atol,saveat = dt)
+
+    u_sol = zeros(size(sol.t,1),N);
+    for j in 1:size(sol.t,1) # Reshape output and plot
+        u_sol[j,:] = real.(ifft_norm(sol.u[j])); # u[t,x,IC]
+    end
+    return u_sol, sol.u, k
+end
+
+"""
+    generate_fourier_solution_implicit(L1,L2,tspan,N,initial_condition,pde_function_explicit,pde_function_implicit;dt=1e-4,rtol=1e-8,atol=1e-12,nu=0.1)
+
+Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a `N` mode Fourier expansion and a Crank-Nicolson solver.
+
+"""
+function generate_fourier_solution_implicit(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-4,rtol=1e-8,atol=1e-12,nu=0.1)
+    # Transform random initial condition to Fourier domain
+    uhat0 = fft_norm(initial_condition);
+    dL = abs(L2-L1);
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
+  
+    # Generate Fourier Galerkin solution for N
+    p = [N,dL,nu];
+    t_length = tspan[2]/dt+1;
+  
+    # Solve the system of ODEs in Fourier domain
+    prob = ODEProblem(pde_function,uhat0,tspan,p);
+    sol = solve(prob,Trapezoid(autodiff=false,linsolve=LinSolveFactorize(lu!)),reltol=rtol,abstol=atol,saveat = dt,force_dtmin=true,maxiters=1e8)
+
+    u_sol = zeros(size(sol.t,1),N);
+    for j in 1:size(sol.t,1) # Reshape output and plot
+        u_sol[j,:] = real.(ifft_norm(sol.u[j])); # u[t,x,IC]
+    end
+    return u_sol, sol.u, k
+end
+
+"""
+    generate_basis_solution(nodes,weights,tspan,initial_condition,basis,params,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14,peak=1.05)
+
+Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a custom basis function expansion and a RK45 solver.
+
+"""
+function generate_basis_solution(nodes,weights,tspan,initial_condition,basis,params,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14,peak=1.05)
+    u0 = expansion_coefficients(basis,initial_condition,nodes,weights);
+    e0 = get_1D_energy_custom_coefficients(u0);
+
+    t_length = tspan[2]/dt+1;
+  
+    # Solve the system of ODEs
+    # Standard energy criteria
+    energy_criteria(u,t,integrator) = get_1D_energy_custom_coefficients(integrator.u) > peak*e0;
+    # Energy criteria for inviscid Burgers
+    # energy_criteria(u,t,integrator) = (get_1D_energy_custom_coefficients(integrator.u) > peak*get_1D_energy_custom_coefficients(integrator.uprev)) || (abs(integrator.u'*params[2]-integrator.u'*params[1]) > 1e-2);
+
+    affect!(integrator) = terminate!(integrator)
+    cb = DiscreteCallback(energy_criteria,affect!,save_positions=(true,false))
+    prob = ODEProblem(pde_function,u0,tspan,params);
+    sol = solve(prob,DP5(),reltol=rtol,abstol=atol,saveat = dt,callback=cb)
+
+    u_sol = zeros(size(sol.t,1),size(nodes,1));
+    for j in 1:size(sol.t,1) # Reshape output and plot
+        u_sol[j,:] = expansion_approximation(basis,sol.u[j],nodes)
+    end
+    return u_sol, sol.t, sol.u
+end
+
+"""
+    generate_basis_solution_esdirk(nodes,weights,tspan,initial_condition,basis,params,pde_function;dt=1e-4,rtol=1e-8,atol=1e-12)
+
+Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a custom basis function expansion and a ESDIRK4 solver.
+
+"""
+function generate_basis_solution_esdirk(nodes,weights,tspan,initial_condition,basis,params,pde_function,;dt=1e-4,rtol=1e-8,atol=1e-12)
+
+    u0 = expansion_coefficients(basis,initial_condition,nodes,weights);
+  
+    t_length = tspan[2]/dt+1;
+  
+    # Solve the system of ODEs
+    prob = ODEProblem(pde_function,u0,tspan,params);
+    sol = solve(prob,Kvaerno4(autodiff=false,linsolve=LinSolveFactorize(lu!)),reltol=rtol,abstol=atol,saveat = dt)
+
+    u_sol = zeros(size(sol.t,1),size(nodes,1));
+    for j in 1:size(sol.t,1) # Reshape output and plot
+        u_sol[j,:] = expansion_approximation(basis,sol.u[j],nodes)
+    end
+      return u_sol, sol.t, sol.u
+end
+
+"""
+    generate_basis_solution_implicit(nodes,weights,tspan,initial_condition,basis,params,pde_function;dt=1e-3,rtol=1e-8,atol=1e-12)
+
+Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a custom basis function expansion and a Crank-Nicolson solver.
+
+"""
+function generate_basis_solution_implicit(nodes,weights,tspan,initial_condition,basis,params,pde_function;dt=1e-4,rtol=1e-8,atol=1e-12)
+    u0 = expansion_coefficients(basis,initial_condition,nodes,weights);
+  
+    t_length = tspan[2]/dt+1;
+  
+    # Solve the system of ODEs
+    prob = ODEProblem(pde_function,u0,tspan,params);
+    sol = solve(prob,Trapezoid(autodiff=false,linsolve=LinSolveFactorize(lu!)),reltol=rtol,abstol=atol,saveat = dt,force_dtmin=true,maxiters=1e8)
+
+    u_sol = zeros(size(sol.t,1),size(nodes,1));
+    for j in 1:size(sol.t,1) # Reshape output and plot
+        u_sol[j,:] = expansion_approximation(basis,sol.u[j],nodes)
+    end
+      return u_sol, sol.t, sol.u
+  end
 
 """
     central_difference(u_j,u_jpos,u_jneg,mu)

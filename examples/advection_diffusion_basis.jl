@@ -64,4 +64,4 @@ function generate_basis_function_results(pde_function;kws...)
 end
 
 # Generate the custom basis functions from the trained trunk functions
-generate_basis_function_results("advection_equation")
+generate_basis_function_results("advection_diffusion_equation")

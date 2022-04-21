@@ -36,13 +36,13 @@ export error_se, error_rel, mse_error, norm_rel_error, norm_rel_error_continuous
 # Export the functions for OperatorNN.jl
 export train_model, loss_all, predict,
        build_dense_model, build_branch_model, build_trunk_model,
-       exp_kernel_periodic, generate_sinusoidal_functions_2_parameter, generate_periodic_train_test_initial_conditions, generate_periodic_train_test, generate_periodic_train_test_initial_condition_load, generate_periodic_functions, solution_extraction,
+       exp_kernel_periodic, generate_sinusoidal_functions_2_parameter, generate_periodic_train_test_initial_conditions, generate_periodic_train_test_muscl, generate_periodic_train_test_esdirk, generate_periodic_train_test_implicit, generate_periodic_functions, solution_extraction,
        save_model, load_model, load_branch, load_trunk, save_data, load_data, load_data_initial_conditions, load_data_train_test, load_data_initial_conditions, save_data_initial_conditions
 
 # Export the functions for PDESolve.jl
-export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_burgers_pde!,
+export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_burgers_pde!, kdv_explicit_pde!, kdv_implicit_pde!, kdv_pde!, ks_explicit_pde!, ks_implicit_pde!, ks_pde!, rhs_advection!, rhs_advection_diffusion!, burgers_flux, quadratic_nonlinear_triple_product_basis, quadratic_nonlinear_basis, rhs_viscous_burgers!, rhs_inviscid_burgers!, rhs_explicit_kdv!, rhs_implicit_kdv!, rhs_kdv!, rhs_explicit_ks!, rhs_implicit_ks!, rhs_ks!,
        quadratic_nonlinear,
-       generate_fourier_solution, generate_periodic_train_test_muscl,
+       generate_fourier_solution, generate_fourier_solution_esdirk, generate_fourier_solution_implicit, generate_basis_solution, generate_basis_solution_esdirk, generate_basis_solution_implicit,
        central_difference,
        minmod, ub, fl, ulpl, urpl, ulnl, urnl,
        muscl_minmod_RHS!, muscl_minmod_viscous_RHS!, generate_muscl_minmod_solution, generate_muscl_reduced,

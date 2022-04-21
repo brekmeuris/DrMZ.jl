@@ -107,8 +107,8 @@ function generate_opnn_results(pde_function,pde_function_handle;random_integer =
 end
 
 # Generate data and train the model
-generate_train("advection_equation",advection_pde!)
+generate_train("advection_diffusion_equation",advection_diffusion_pde!)
 
 # Generate results - enter "none", an integer value (e.g. 975), or "exact" to specify an initial condition
 # If testing ability of network to extrapolate beyond the training interval, comment out the generation functions above and adjust the Arg tspan
-generate_opnn_results("advection_equation",advection_pde!;random_integer = "exact")
+generate_opnn_results("advection_diffusion_equation",advection_diffusion_pde!;random_integer = "none")

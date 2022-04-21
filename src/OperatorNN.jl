@@ -248,79 +248,7 @@ function generate_periodic_train_test(t_span,number_sensors,number_train_functio
 end
 
 """
-    generate_periodic_train_test_initial_condition_load(train_ics,test_ics,t_span,number_sensors,number_test_functions,number_train_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,batch=number_solution_points,dt=1e-3,nu_val=0.1,domain="periodic")
-
-Generate the training and testing data for a specified `pde_function_handle` for periodic boundary conditions using a Fourier spectral method. Loads previously generated initial conditions, see [`generate_periodic_train_test`](@ref) for generating all data in one go.
-
-"""
-function generate_periodic_train_test_initial_condition_load(train_ics,test_ics,t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,batch=number_solution_points,dt_size=1e-3,nu_val=0.1,domain="periodic")
-
-    if domain == "periodic"
-        dL = abs(L2-L1);
-        # Set up x domain and wave vector for spectral solution
-        x = trapezoid(number_sensors,L1,L2)[1];
-        k = reduce(vcat,(2*π/dL)*[0:number_sensors/2-1 -number_sensors/2:-1]);
-    elseif domain == "full"
-        dL = abs(L2-L1);
-        # Set up x domain and wave vector for spectral solution
-        x = trapezoid((number_sensors-1),L1,L2)[1];
-        k = reduce(vcat,(2*π/dL)*[0:Int(number_sensors-1)/2-1 -Int(number_sensors-1)/2:-1]);
-    end
-
-    # Generate the dataset using spectral method
-    t_length = t_span[2]/dt_size + 1;
-    t = range(t_span[1],stop = t_span[2], length = Int(t_length));
-    train_ic = zeros(number_sensors,number_solution_points,number_train_functions);
-    train_loc = zeros(2,number_solution_points,number_train_functions);
-    train_target = zeros(1,number_solution_points,number_train_functions);
-    test_ic = zeros(number_sensors,number_solution_points,number_test_functions);
-    test_loc = zeros(2,number_solution_points,number_test_functions);
-    test_target = zeros(1,number_solution_points,number_test_functions);
-
-    if domain == "periodic"
-        @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
-            interp_train_sample = train_ics[1:end-1,i];
-            u_train = generate_fourier_solution(L1,L2,t_span,number_sensors,interp_train_sample,pde_function_handle,dt=dt_size)[1];
-            train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x,t,u_train,interp_train_sample,number_solution_points);
-        end
-        @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
-            interp_test_sample = test_ics[1:end-1,i];
-            u_test = generate_fourier_solution(L1,L2,t_span,number_sensors,interp_test_sample,pde_function_handle,dt=dt_size)[1];
-            test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x,t,u_test,interp_test_sample,number_solution_points);
-        end
-    elseif domain == "full"
-        @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
-            interp_train_sample_fourier = train_ics[1:end-1,i];
-            u_train_fourier = generate_fourier_solution(L1,L2,t_span,Int(number_sensors-1),interp_train_sample_fourier,pde_function_handle,dt=dt_size)[1];
-            interp_train_sample = random_ics[:,i];
-            u_train = periodic_fill_solution(u_train_fourier);
-            train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x_full,t,u_train,interp_train_sample,number_solution_points);
-        end
-        @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
-            interp_test_sample_fourier = test_ics[1:end-1,i];
-            u_test_fourier = generate_fourier_solution(L1,L2,t_span,Int(number_sensors-1),interp_test_sample_fourier,pde_function_handle,dt=dt_size)[1];
-            interp_test_sample = random_ics[:,Int(number_train_functions+i)];
-            u_test = periodic_fill_solution(u_test_fourier);
-            test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x_full,t,u_test,interp_test_sample,number_solution_points);
-        end
-    end
-
-    # Combine data sets from each function
-    opnn_train_ic = reshape(hcat(train_ic...),(number_sensors,Int(number_solution_points*number_train_functions)));
-    opnn_train_loc = reshape(hcat(train_loc...),(2,Int(number_solution_points*number_train_functions)));
-    opnn_train_target = reshape(hcat(train_target...),(1,Int(number_solution_points*number_train_functions)));
-    opnn_test_ic = reshape(hcat(test_ic...),(number_sensors,Int(number_solution_points*number_test_functions)));
-    opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
-    opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
-
-    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);
-    test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
-
-    return train_data, test_data
-end
-
-"""
-    generate_periodic_train_test_muscl(L1,L2,t_span,number_sensors,number_test_functions,number_train_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt_size=1e-4,upwind_solution_points=4096,fnc=(x)->sin(x/2)^2)
+    generate_periodic_train_test_muscl(t_span,number_sensors,number_test_functions,number_train_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt_size=1e-4,upwind_solution_points=4096,fnc=(x)->sin(x/2)^2)
 
 Generate the training and testing data for a specified `pde_function_handle` for periodic boundary conditions using a MUSCL method. Defaults to IC \$f(\\sin^2(x/2))\$ and \$x ∈ [0,1]\$.
 
@@ -373,6 +301,114 @@ function generate_periodic_train_test_muscl(t_span,number_sensors,number_train_f
 
     train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);#,shuffle = true);
     test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
+    return train_data, test_data
+end
+
+"""
+    generate_periodic_train_test_esdirk(t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt_size=1e-4,nu_val=0.1,domain="periodic",fnc=(x)->sin(x/2)^2,mode_multiplier=4)
+
+Generate the training and testing data for a specified `pde_function_handle` for periodic boundary conditions using a Fourier spectral method and a ESDIRK ODE solver. Defaults to IC \$f(\\sin^2(x/2))\$ and \$x ∈ [0,1]\$.
+
+"""
+function generate_periodic_train_test_esdirk(t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt_size=1e-4,nu_val=0.1,domain="periodic",fnc=(x)->sin(x/2)^2,mode_multiplier=4)
+
+    x_full = range(L1,stop = L2,length = Int(mode_multiplier*number_sensors+1)); # Full domain for periodic number of sensors
+    random_ics = generate_periodic_functions(fnc,x_full,Int(number_train_functions + number_test_functions),length_scale)
+    dL = abs(L2-L1);
+    # Set up x domain and wave vector for spectral solution
+    x = trapezoid(number_sensors,L1,L2)[1];
+    x_full = trapezoid(Int(mode_multiplier*number_sensors),L1,L2)[1];
+
+    # Generate the dataset using spectral method
+    t_length = t_span[2]/dt_size + 1;
+    t = range(t_span[1],stop = t_span[2], length = Int(t_length));
+    train_ic = zeros(number_sensors,number_solution_points,number_train_functions);
+    train_loc = zeros(2,number_solution_points,number_train_functions);
+    train_target = zeros(1,number_solution_points,number_train_functions);
+    test_ic = zeros(number_sensors,number_solution_points,number_test_functions);
+    test_loc = zeros(2,number_solution_points,number_test_functions);
+    test_target = zeros(1,number_solution_points,number_test_functions);
+
+    @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
+        interp_train_sample_full = random_ics[1:end-1,i];
+        u_train_full = generate_fourier_solution_esdirk(L1,L2,t_span,Int(mode_multiplier*number_sensors),interp_train_sample_full,pde_function_handle;dt= dt_size,nu=nu_val)[1];
+        interp_train_sample = transpose(solution_spatial_sampling(x,x_full,transpose(interp_train_sample_full)));
+        u_train = solution_spatial_sampling(x,x_full,u_train_full);
+        train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x,t,u_train,interp_train_sample,number_solution_points);
+    end
+    @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
+        interp_test_sample_full = random_ics[1:end-1,Int(number_train_functions+i)];
+        u_test_full = generate_fourier_solution_esdirk(L1,L2,t_span,Int(mode_multiplier*number_sensors),interp_test_sample_full,pde_function_handle;dt = dt_size,nu=nu_val)[1];
+        interp_test_sample = transpose(solution_spatial_sampling(x,x_full,transpose(interp_test_sample_full)));
+        u_test = solution_spatial_sampling(x,x_full,u_test_full);
+        test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x,t,u_test,interp_test_sample,number_solution_points);
+    end
+
+    # Combine data sets from each function
+    opnn_train_ic = reshape(hcat(train_ic...),(number_sensors,Int(number_solution_points*number_train_functions)));
+    opnn_train_loc = reshape(hcat(train_loc...),(2,Int(number_solution_points*number_train_functions)));
+    opnn_train_target = reshape(hcat(train_target...),(1,Int(number_solution_points*number_train_functions)));
+    opnn_test_ic = reshape(hcat(test_ic...),(number_sensors,Int(number_solution_points*number_test_functions)));
+    opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
+    opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
+
+    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);
+    test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
+
+    return train_data, test_data
+end
+
+"""
+    generate_periodic_train_test_implicit(t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt_size=1e-4,nu_val=0.1,domain="periodic",fnc=(x)->sin(x/2)^2,mode_multiplier=4)
+
+Generate the training and testing data for a specified `pde_function_handle` for periodic boundary conditions using a Fourier spectral method and a Crank-Nicolson solver. Defaults to IC \$f(\\sin^2(x/2))\$ and \$x ∈ [0,1]\$.
+
+"""
+function generate_periodic_train_test_implicit(t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt_size=1e-4,nu_val=0.1,domain="periodic",fnc=(x)->sin(x/2)^2,mode_multiplier=4)
+
+    x_full = range(L1,stop = L2,length = Int(mode_multiplier*number_sensors+1)); # Full domain for periodic number of sensors
+    random_ics = generate_periodic_functions(fnc,x_full,Int(number_train_functions + number_test_functions),length_scale)
+    dL = abs(L2-L1);
+    # Set up x domain and wave vector for spectral solution
+    x = trapezoid(number_sensors,L1,L2)[1];
+    x_full = trapezoid(Int(mode_multiplier*number_sensors),L1,L2)[1];
+
+    # Generate the dataset using spectral method
+    t_length = t_span[2]/dt_size + 1;
+    t = range(t_span[1],stop = t_span[2], length = Int(t_length));
+    train_ic = zeros(number_sensors,number_solution_points,number_train_functions);
+    train_loc = zeros(2,number_solution_points,number_train_functions);
+    train_target = zeros(1,number_solution_points,number_train_functions);
+    test_ic = zeros(number_sensors,number_solution_points,number_test_functions);
+    test_loc = zeros(2,number_solution_points,number_test_functions);
+    test_target = zeros(1,number_solution_points,number_test_functions);
+
+    @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
+        interp_train_sample_full = random_ics[1:end-1,i];
+        u_train_full = generate_fourier_solution_implicit(L1,L2,t_span,Int(mode_multiplier*number_sensors),interp_train_sample_full,pde_function_handle;dt= dt_size,nu=nu_val)[1];
+        interp_train_sample = transpose(solution_spatial_sampling(x,x_full,transpose(interp_train_sample_full)));
+        u_train = solution_spatial_sampling(x,x_full,u_train_full);
+        train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x,t,u_train,interp_train_sample,number_solution_points);
+    end
+    @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
+        interp_test_sample_full = random_ics[1:end-1,Int(number_train_functions+i)];
+        u_test_full = generate_fourier_solution_implicit(L1,L2,t_span,Int(mode_multiplier*number_sensors),interp_test_sample_full,pde_function_handle;dt = dt_size,nu=nu_val)[1];
+        interp_test_sample = transpose(solution_spatial_sampling(x,x_full,transpose(interp_test_sample_full)));
+        u_test = solution_spatial_sampling(x,x_full,u_test_full);
+        test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x,t,u_test,interp_test_sample,number_solution_points);
+    end
+
+    # Combine data sets from each function
+    opnn_train_ic = reshape(hcat(train_ic...),(number_sensors,Int(number_solution_points*number_train_functions)));
+    opnn_train_loc = reshape(hcat(train_loc...),(2,Int(number_solution_points*number_train_functions)));
+    opnn_train_target = reshape(hcat(train_target...),(1,Int(number_solution_points*number_train_functions)));
+    opnn_test_ic = reshape(hcat(test_ic...),(number_sensors,Int(number_solution_points*number_test_functions)));
+    opnn_test_loc = reshape(hcat(test_loc...),(2,Int(number_solution_points*number_test_functions)));
+    opnn_test_target = reshape(hcat(test_target...),(1,Int(number_solution_points*number_test_functions)));
+
+    train_data = DataLoader(opnn_train_ic, opnn_train_loc, opnn_train_target, batchsize=batch);
+    test_data = DataLoader(opnn_test_ic, opnn_test_loc, opnn_test_target, batchsize=batch);
+
     return train_data, test_data
 end
 
