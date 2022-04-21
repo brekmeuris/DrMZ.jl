@@ -44,7 +44,6 @@ function generate_DG_results(pde_function,pde_function_handle_basis,pde_function
   W = diagm(0 => w);
 
   t_span = (0:args.dt:args.tspan[2]);
-  t_reduced = (0:5e-1:args.tspan[2]);
 
   basis_full, S = build_basis(trunk,args.L1,args.L2,M,x,w);
   r = findall(S .>= 1e-13)[end];
@@ -143,8 +142,6 @@ function generate_DG_results(pde_function,pde_function_handle_basis,pde_function
     end
 
     error_vec[:,j] = norm_rel_error(u_fourier_shifted,u_basis);
-
-    error_vec_red[:,j] = solution_temporal_sampling(t_reduced,t_span,error_vec[:,j]);
     avg_error_vec[j] = average_error(t_span,error_vec[:,j]);
 
     pltfinal = plot(x,u_basis[end,:],label="$r custom basis function solution",legend=:outerbottom,foreground_color_legend = nothing,xlims=(args.L1,args.L2),xlabel=L"x",ylabel=L"u(x)")
