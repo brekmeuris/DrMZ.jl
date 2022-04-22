@@ -23,7 +23,7 @@ ToeplitzMatrices = "c751599d-da0a-543b-9d20-d0a503d91d24"
 [compat]
 BSON = "0.2, 0.3"
 DifferentialEquations = "6.10"
-Distributions = "0.23"
+Distributions = "0.23, 0.25"
 FFTW = "1.0, 1.1"
 FastGaussQuadrature = "0.4"
 Flux = "0.10"
