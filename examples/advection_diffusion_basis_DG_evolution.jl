@@ -45,9 +45,8 @@ function generate_DG_results(pde_function,pde_function_handle_basis,pde_function
 
   t_span = (0:args.dt:args.tspan[2]);
 
-  basis_full, S = build_basis(trunk,args.L1,args.L2,M,x,w);
-  r = findall(S .>= 1e-13)[end];
-  basis = basis_full[1:r];
+  basis, Dbasis, S, utilde = build_basis(trunk,args.L1,args.L2,M,x,w);
+  r = length(basis);
 
   plts_full = plot((1:1:length(S)),S,label=false,seriestype=:scatter,yaxis = :log10,xlabel = L"k", ylabel = L"$\sigma_k$",xlims=(1,length(S)))
   savefig(plts_full, @sprintf("singular_values_%s_%i.pdf",pde_function,r))
@@ -59,6 +58,34 @@ function generate_DG_results(pde_function,pde_function_handle_basis,pde_function
     plot!(pltbasis,x_plot,basis_full[i].(x_plot),legend=:topright,label=L"\phi_{%$i}(x)",linewidth=2,ylims=(-0.8+minimum(basis_full[i].(x_plot)),1.2+maximum(basis_full[i].(x_plot))),linecolor=ColorSchemes.viridis.colors[c_vec_b[i]])
   end
   savefig(pltbasis, @sprintf("basis_functions_%s_%i.pdf",pde_function,r))
+
+  # Determine flow direction
+  if args.alpha >= 0.0
+    xin = args.L1;
+    xout = args.L2;
+  else
+    xin = args.L2;
+    xout = args.L1;
+  end
+
+  xin_diff = args.L1;
+  xout_diff = args.L2;
+
+  # Pre-compute derivative and boundary condition matricies
+  # Dbasis = basis_derivative(basis); # Autodifferentiation version of basis derivative
+  basis_nodes = basis_eval(basis,x);
+  Dbasis_nodes = basis_eval(Dbasis,x);
+  basis_in = basis_eval(basis,xin)[:];
+  basis_out = basis_eval(basis,xout)[:];
+
+  basis_in_diff = basis_eval(basis,xin_diff)[:];
+  basis_out_diff = basis_eval(basis,xout_diff)[:];
+
+  Dmatrix = Dbasis_nodes'*W*basis_nodes;
+  BC = (basis_out-basis_in)*basis_out';
+
+  # Parameters for ODE solver
+  params = [args.alpha*Dmatrix-abs(args.alpha)*BC, args.nu*(-Dmatrix + (basis_out_diff - basis_in_diff)*basis_out_diff')*(-Dmatrix + (basis_out_diff - basis_in_diff)*basis_in_diff')];
 
   rand_vec = (2,"sine","expsine");
   mark = (:circle,:diamond,:hexagon);
@@ -98,34 +125,6 @@ function generate_DG_results(pde_function,pde_function_handle_basis,pde_function
 
     u0_vec[:,j] = expansion_coefficients(basis,ic,x,w);
 
-    # Determine flow direction
-    if args.alpha >= 0.0
-      xin = args.L1;
-      xout = args.L2;
-    else
-      xin = args.L2;
-      xout = args.L1;
-    end
-
-    xin_diff = args.L1;
-    xout_diff = args.L2;
-
-    # Pre-compute derivative and boundary condition matricies
-    Dbasis = basis_derivative(basis);
-    basis_nodes = basis_eval(basis,x);
-    Dbasis_nodes = basis_eval(Dbasis,x);
-    basis_in = basis_eval(basis,xin)[:];
-    basis_out = basis_eval(basis,xout)[:];
-
-    basis_in_diff = basis_eval(basis,xin_diff)[:];
-    basis_out_diff = basis_eval(basis,xout_diff)[:];
-
-    Dmatrix = Dbasis_nodes'*W*basis_nodes;
-    BC = (basis_out-basis_in)*basis_out';
-
-    # Parameters for ODE solver
-    params = [args.alpha*Dmatrix-abs(args.alpha)*BC, args.nu*(-Dmatrix + (basis_out_diff - basis_in_diff)*basis_out_diff')*(-Dmatrix + (basis_out_diff - basis_in_diff)*basis_in_diff')];
-
     u_basis, t_basis, u_basis_coeffs = generate_basis_solution(x,w,args.tspan,ic,basis_nodes,params,pde_function_handle_basis;dt=args.dt);
 
     u_fourier, fourier_coefficients, k = generate_fourier_solution(args.L1,args.L2,args.tspan,args.modes,icf,pde_function_handle_reference;dt=args.dt,alpha=args.alpha,nu=args.nu);
@@ -136,9 +135,14 @@ function generate_DG_results(pde_function,pde_function_handle_basis,pde_function
     pltfourier = plot(heatmap(periodic_fill_domain(xf),t_span,periodic_fill_solution(u_fourier),aspect_ratio=(args.L2)/args.tspan[2]),fillcolor=cgrad(ColorSchemes.viridis.colors),label=false,xlabel = L"x", ylabel = L"t",xlims=(args.L1,args.L2),ylims=(0,args.tspan[2]),dpi=300,right_margin=150mm)
     savefig(pltfourier, @sprintf("fourier_%s_%i_%i.png",pde_function,args.modes,rand_int))
 
+    basis_fourier = zeros(Complex{Float64},size(x,1),size(k,1))
+    for i in 1:size(k,1)
+      basis_fourier[:,i] = exp.(im*k[i]*(x));
+    end
+    
     u_fourier_shifted = zeros(size(t_span,1),size(x,1));
     for i in 1:size(t_span,1)
-        u_fourier_shifted[i,:] = real.(spectral_approximation_fourier(x,k,fourier_coefficients[i][:]))
+      u_fourier_shifted[i,:] = real.(basis_fourier*fourier_coefficients[i][:]);
     end
 
     error_vec[:,j] = norm_rel_error(u_fourier_shifted,u_basis);
@@ -150,8 +154,8 @@ function generate_DG_results(pde_function,pde_function_handle_basis,pde_function
 
     endpoints = zeros(size(t_basis,1),2);
     for i in 1:size(t_basis,1)
-      endpoints[i,1] = expansion_approximation(basis,u_basis_coeffs[i],args.L1)[1];
-      endpoints[i,2] = expansion_approximation(basis,u_basis_coeffs[i],args.L2)[1];
+      endpoints[i,1] = u_basis_coeffs[i]'*basis_in_diff;
+      endpoints[i,2] = u_basis_coeffs[i]'*basis_out_diff;
       diff_vec[i,j] = abs(endpoints[i,2] - endpoints[i,1]);
     end
   

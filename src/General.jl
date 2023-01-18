@@ -43,7 +43,6 @@ function mse_error(target,prediction)
             error_test_mse += (prediction[j,i] - target[j,i])^2;
         end
     end
-    # return (1/size(target[:],1))*sum((prediction[:].-target[:]).^2);
     return (1/(size(target,1)*size(target,2)))*error_test_mse
 end
 
@@ -202,7 +201,7 @@ function fourier_diff(sol,N,dL;format="matrix")
         col = vcat(0, 0.5*(-1).^(1:N-1).*cot.((1:N-1)*h/2));
         row = vcat(col[1], col[N:-1:2]);
         diff_matrix = Toeplitz(col,row);
-        diff_sol = (2*pi/dL)*diff_matrix*sol; # Make dx calc abs...
+        diff_sol = (2*pi/dL)*diff_matrix*sol;
     elseif format == "spectral"
         k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]); # Wavenumbers
         sol_k = fft(sol);
@@ -367,10 +366,13 @@ end
 """
     trapezoid(N,L1,L2)
 
-Compute the nodes and weights for trapezoid rule with `N` discretization points and on the interval ``[L1,L2]``.
+Compute the nodes and weights for trapezoid rule with `N` discretization points and on the interval ``[0,L2]``. TO DO: Revise for [L1,L2] support.
 
 """
 function trapezoid(N,L1,L2)
+    if L1<0
+        error("Currently set up only for interval [0,L2]")
+    end
     dL = abs(L2-L1);
     j = reduce(vcat,[0:1:N-1]);
     x = (dL.*j)./N;
@@ -403,16 +405,91 @@ end
 """
     legendre_norm(x,L1,L2,n)
 
+Compute the `n`-th orthonormal, shifted Legendre polynomial
+
 """
 function legendre_norm(x,L1,L2,n)
     return ((2*n+1)/(L2-L1))^(1/2)*Pl(((2*x-L1-L2)/(L2-L1)),n)
 end
 
 """
-    legendre_norm_collect(x,L1,L2,nmax)
+    dlegendre_norm(x,L1,L2,n)
+
+Compute the 1st derivative of the `n`-th shifted Legendre polynomial 
 
 """
-function legendre_norm_collect(x,L1,L2,nmax)
-    n_list = (0:1:nmax);
-    return ((2*n_list.+1)/(L2-L1)).^(1/2).*parent(collectPl(((2*x-L1-L2)/(L2-L1)),lmax=nmax));
+function dlegendre_norm(x,L1,L2,n)
+    return (2/(2*n+1))*((2*n+1)/(L2-L1))^(3/2)*dnPl(((2*x-L1-L2)/(L2-L1)),n,1)
 end
+
+"""
+    legendre_norm_basis_build(nmax,L1,L2)
+
+"""
+function legendre_norm_basis_build(nmax,L1,L2)
+    basis = []
+    for i in 1:nmax
+        push!(basis,(y)->legendre_norm(y,L1,L2,i-1))
+    end
+    return basis
+end
+
+"""
+    dlegendre_norm_basis_build(nmax,L1,L2)
+
+"""
+function dlegendre_norm_basis_build(nmax,L1,L2)
+    Dbasis = []
+    for i in 1:nmax
+        push!(Dbasis,(y)->dlegendre_norm(y,L1,L2,i-1))
+    end
+    return Dbasis
+end
+
+"""
+    bsplines_eval(x,basis,p,n,b)
+
+"""
+function bsplines_eval(x::Float64,basis,p,n,b)
+    indices=(p+1):n+2*p;
+    bmat = [basis[i](x) for i=indices];
+    return bmat'*b;
+end
+function bsplines_eval(x::Any,basis,p,n,b)
+    indices=(p+1):n+2*p;
+    bmat = [basis[i](x) for i=indices];
+    return bmat'*b;
+end
+function bsplines_eval(x::Array{Float64,1},basis,p,n,b)
+    bmat = basismatrix(basis,x,indices=(p+1):n+2*p);
+    return bmat*b;
+end
+
+"""
+    bsplines_interpolate_periodic(x,y,p)
+
+"""
+function bsplines_interpolate_periodic(x,y,p)
+    n = size(x,1) - 1;
+    period = x[end]-x[1];
+    k = vcat(x[end-p:end-1] .- period,x,x[1+1:1+p] .+ period);
+    bsbasis = BSplineBasis(p+1,k);
+    bmat = basismatrix(bsbasis,x,indices=(p+1):n+p)[1:n,:];
+    for i in 1:p-1
+        for j in 1:i
+        bmat[n+i-p+1,j] += bsplines(bsbasis,x[i+n-p+1])[p+1+j+n-1];
+        end
+    end
+    b = bmat \ y[1:end-1]
+    b = vcat(b,b[1:p]);
+    return (z) -> bsplines_eval(z,bsbasis,p,n,b)
+end
+
+"""
+    linear_reg(x,y)
+
+"""
+function linear_reg(x,y)
+    X = [ones(size(x,1)) x];
+    return (X'*X)\X' * y
+  end

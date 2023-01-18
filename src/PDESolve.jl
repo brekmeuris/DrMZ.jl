@@ -57,7 +57,7 @@ Compute the convolution sum \$\\frac{ik}{2}\\sum_{p+q=k} u_p u_q\$ resulting fro
 
 """
 function quadratic_nonlinear(uhat,N,dL,alpha)
-    M = Int((3/2)*N); # For dealiasing -> For MZ models must be 3*N to account for unresolved modes + dealiasing
+    M = Int(round(((3/2)*N)/2,RoundUp)*2); # For dealiasing -> For MZ models must be 3*N to account for unresolved modes + dealiasing
     k_M = reduce(vcat,(2*π/dL)*[0:M/2-1 -M/2:-1]); # Wavenumbers for convolution sum with padding
     u_M = zeros(Complex{Float64},Int(M));
     u_M[1:Int(N/2)] = uhat[1:Int(N/2)];
@@ -193,7 +193,7 @@ end
 
 """
 function quadratic_nonlinear_triple_product_basis(basis_nodes,Dbasis_nodes,nodes,weights)
-
+    W = diagm(0=>weights);
     nonlinear_triple = zeros(size(basis_nodes,2),size(basis_nodes,2),size(basis_nodes,2))
     for k in 1:size(basis_nodes,2)
         for l in 1:size(basis_nodes,2)
@@ -203,7 +203,7 @@ function quadratic_nonlinear_triple_product_basis(basis_nodes,Dbasis_nodes,nodes
                     inner_loop += basis_nodes[p,k]*basis_nodes[p,l]*conj(Dbasis_nodes[p,m])*weights[p];
                 end
                 nonlinear_triple[k,l,m] = inner_loop;
-  
+                # nonlinear_triple[k,l,m] = Dbasis_nodes[:,m]'*W*(basis_nodes[:,k].*basis_nodes[:,l]);
             end
         end
     end
@@ -224,6 +224,8 @@ function quadratic_nonlinear_basis(u,nonlinear_triple)
             end
         end
         quadratic_nonlinear[m] = 1/2*inner_loop;
+        # quadratic_nonlinear[m] = (1/2)*(u'*nonlinear_triple[:,:,m]*u);
+
     end
     return quadratic_nonlinear
 end
@@ -371,11 +373,10 @@ function generate_fourier_solution_esdirk(L1,L2,tspan,N,initial_condition,pde_fu
     # Transform random initial condition to Fourier domain
     uhat0 = fft_norm(initial_condition);
     dL = abs(L2-L1);
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
   
     # Generate Fourier Galerkin solution for N
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
     p = [N,dL,nu];
-    t_length = tspan[2]/dt+1;
   
     # Solve the system of ODEs in Fourier domain
     prob = ODEProblem(pde_function,uhat0,tspan,p);
@@ -398,11 +399,10 @@ function generate_fourier_solution_implicit(L1,L2,tspan,N,initial_condition,pde_
     # Transform random initial condition to Fourier domain
     uhat0 = fft_norm(initial_condition);
     dL = abs(L2-L1);
-    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
   
     # Generate Fourier Galerkin solution for N
+    k = reduce(vcat,(2*π/dL)*[0:N/2-1 -N/2:-1]);
     p = [N,dL,nu];
-    t_length = tspan[2]/dt+1;
   
     # Solve the system of ODEs in Fourier domain
     prob = ODEProblem(pde_function,uhat0,tspan,p);
@@ -425,12 +425,10 @@ function generate_basis_solution(nodes,weights,tspan,initial_condition,basis,par
     u0 = expansion_coefficients(basis,initial_condition,nodes,weights);
     e0 = get_1D_energy_custom_coefficients(u0);
 
-    t_length = tspan[2]/dt+1;
-  
     # Solve the system of ODEs
     # Standard energy criteria
     energy_criteria(u,t,integrator) = get_1D_energy_custom_coefficients(integrator.u) > peak*e0;
-    # Energy criteria for inviscid Burgers
+    # Old energy criteria for inviscid Burgers
     # energy_criteria(u,t,integrator) = (get_1D_energy_custom_coefficients(integrator.u) > peak*get_1D_energy_custom_coefficients(integrator.uprev)) || (abs(integrator.u'*params[2]-integrator.u'*params[1]) > 1e-2);
 
     affect!(integrator) = terminate!(integrator)
@@ -451,11 +449,9 @@ end
 Generate the solution for a given `pde_function` and `initial_condition` on a periodic domain using a custom basis function expansion and a ESDIRK4 solver.
 
 """
-function generate_basis_solution_esdirk(nodes,weights,tspan,initial_condition,basis,params,pde_function,;dt=1e-4,rtol=1e-8,atol=1e-12)
+function generate_basis_solution_esdirk(nodes,weights,tspan,initial_condition,basis,params,pde_function;dt=1e-4,rtol=1e-8,atol=1e-12)
 
     u0 = expansion_coefficients(basis,initial_condition,nodes,weights);
-  
-    t_length = tspan[2]/dt+1;
   
     # Solve the system of ODEs
     prob = ODEProblem(pde_function,u0,tspan,params);
@@ -476,8 +472,6 @@ Generate the solution for a given `pde_function` and `initial_condition` on a pe
 """
 function generate_basis_solution_implicit(nodes,weights,tspan,initial_condition,basis,params,pde_function;dt=1e-4,rtol=1e-8,atol=1e-12)
     u0 = expansion_coefficients(basis,initial_condition,nodes,weights);
-  
-    t_length = tspan[2]/dt+1;
   
     # Solve the system of ODEs
     prob = ODEProblem(pde_function,u0,tspan,params);
@@ -661,17 +655,19 @@ function generate_muscl_minmod_solution(L1,L2,t_end,N,u0,pde_function_handle;dt=
     omega = ((3-kappa)/(1-kappa))
 
     dL = abs(L2-L1);
+    dx = dL/N;
+    x = vcat(L1,L1.+(1:(N-1))*dx);
     # Set up periodic domain
-    j = reduce(vcat,[0:1:N-1]);
-    x = (dL.*j)./N;
-    dx = x[2]-x[1];
+    # j = reduce(vcat,[0:1:N-1]);
+    # x = (dL.*j)./N;
+    # dx = x[2]-x[1];
     t = reduce(vcat,[0:dt:t_end]);
 
     p = [dx,kappa,omega,nu]
     t_span = (0,t_end);
 
     prob = ODEProblem(pde_function_handle,u0,t_span,p);
-    sol = solve(prob,BS3(),reltol=1e-6,abstol=1e-8,saveat = dt);
+    @time sol = solve(prob,BS3(),reltol=1e-6,abstol=1e-8,saveat = dt);
    
     u_sol = zeros(size(sol.t,1),size(x,1));
     for i in 1:size(sol.t,1)
@@ -688,11 +684,15 @@ end
 """
 # function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic_func,pde_function_handle;kappa=-1,nu=0.1)
 function generate_muscl_reduced(L1,L2,t_end,dt,M,N,ic,pde_function_handle;kappa=-1,nu=0.1)
-    dL = abs(L2 - L1);
-    j = reduce(vcat,[0:1:N-1]);
-    x = (dL.*j)./N;
-    j_full = reduce(vcat,[0:1:M-1]);
-    x_full = (dL.*j_full)./M;
+    dL = abs(L2-L1);
+    # j = reduce(vcat,[0:1:N-1]);
+    # x = (dL.*j)./N;
+    # j_full = reduce(vcat,[0:1:M-1]);
+    # x_full = (dL.*j_full)./M;
+    dx = dL/N;
+    x = vcat(L1,L1.+(1:(N-1))*dx);
+    dx_full = dL/M;
+    x_full = vcat(L1,L1.+(1:(M-1))*dx_full);
     # ic = ic_func.(x_full);
     u_full = generate_muscl_minmod_solution(L1,L2,t_end,M,ic,pde_function_handle;dt=dt,kappa=kappa,nu=nu)
     u_reduced = solution_spatial_sampling(x,x_full,u_full);
@@ -775,4 +775,217 @@ function spectral_approximation_fourier(x_locations,k,coefficients)
         approximation += coefficients[i]*exp.(im*k[i]*(x_locations));
     end
     return approximation
+end
+
+"""
+    rhs_advection_galerkin!(du,u,p,t)
+
+"""
+function rhs_advection_galerkin!(du,u,p,t)
+    du .= -p*u;
+end
+
+"""
+    rhs_advection_diffusion_galerkin!(du,u,p,t)
+
+"""
+function rhs_advection_diffusion_galerkin!(du,u,p,t)
+    alpha, Dmatrix, nu, D2matrix = p
+    du .= -alpha*Dmatrix*u + nu*D2matrix*u;
+  end
+
+"""
+    quadratic_nonlinear_triple_product_basis_galerkin(basis_nodes,Dbasis_nodes,nodes,weights)
+
+"""
+function quadratic_nonlinear_triple_product_basis_galerkin(basis_nodes,Dbasis_nodes,nodes,weights)
+    nonlinear_triple = zeros(size(basis_nodes,2),size(basis_nodes,2),size(basis_nodes,2))
+    for k in 1:size(basis_nodes,2)
+        for l in 1:size(basis_nodes,2)
+            for m in 1:size(basis_nodes,2)
+                inner_loop = 0.0;
+                for p in 1:size(basis_nodes,1)
+                    inner_loop += basis_nodes[p,k]*Dbasis_nodes[p,l]*conj(basis_nodes[p,m])*weights[p];
+                end
+                nonlinear_triple[k,l,m] = inner_loop;
+  
+            end
+        end
+    end
+    return nonlinear_triple
+end
+
+function quadratic_nonlinear_basis_galerkin(u,nonlinear_triple)
+    quadratic_nonlinear = zeros(size(u,1));
+    for m in 1:size(u,1)
+        inner_loop = 0.0;
+        for l in 1:size(u,1)
+            for k in 1:size(u,1)
+                inner_loop += u[k]*u[l]*nonlinear_triple[k,l,m];
+            end
+        end
+        quadratic_nonlinear[m] = inner_loop;
+    end
+    return quadratic_nonlinear
+end
+
+"""
+    rhs_viscous_burgers_galerkin!(du,u,p,t)
+
+    To Do: Simplify input parameters - typical all Galerkin RHS's
+
+"""
+function rhs_viscous_burgers_galerkin!(du,u,p,t)
+    basis, Dbasis, nodes, weights, D2matrix, nu, triple_product = p;
+    u_nonlinear = quadratic_nonlinear_basis_galerkin(u,triple_product);
+    du .= nu*D2matrix*u - u_nonlinear;
+end
+
+"""
+    rhs_kdv_galerkin!(du,u,p,t)
+
+"""
+function rhs_kdv_galerkin!(du,u,p,t)
+    basis, Dbasis, nodes, weights, D3matrix, nu, triple_product = p;
+    u_nonlinear = quadratic_nonlinear_basis_galerkin(u,triple_product);
+    du .= -nu^2*D3matrix*u - u_nonlinear;
+end
+
+"""
+    rhs_inviscid_burgers_galerkin!(du,u,p,t)
+
+"""
+function rhs_inviscid_burgers_galerkin!(du,u,p,t)
+    basis_left, basis_right, triple_product = p;
+    u_nonlinear = quadratic_nonlinear_basis_galerkin(u,triple_product);
+    du .= - u_nonlinear;
+end
+
+"""
+    rhs_ks_galerkin!(du,u,p,t)
+
+"""
+function rhs_ks_galerkin!(du,u,p,t)
+    basis, Dbasis, nodes, weights, D2matrix, D4matrix, nu, triple_product = p;
+    u_nonlinear = quadratic_nonlinear_basis_galerkin(u,triple_product);
+    du .= -D2matrix*u -nu*D4matrix*u - u_nonlinear;
+end
+
+"""
+    quadratic_nonlinear_basis_pseudo(u,Dmatrix,basis_nodes,nodes,weights)
+
+No padding to account for the impact of potential aliasing    
+
+"""
+# function quadratic_nonlinear_basis_pseudo(u,Dmatrix,basis_nodes,nodes,weights)
+function quadratic_nonlinear_basis_pseudo(u,Dbasis_nodes,basis_nodes,nodes,Dweights)
+    # u_real = expansion_approximation(basis_nodes,u,nodes);
+    u_real = basis_nodes*u;
+    u_real_2 = (1/2)*u_real.*u_real;
+    # u_2 = expansion_coefficients(Dbasis_nodes,u_real_2,nodes,weights);
+    u_2 = Dweights*u_real_2;
+    return u_2
+end
+
+"""
+    rhs_viscous_burgers_pseudo!(du,u,p,t)
+
+"""
+function rhs_viscous_burgers_pseudo!(du,u,p,t)
+    basis_left, basis_right, diffmat, Dbasis_nodes, basis_nodes, nodes, weights = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis_pseudo(u,Dbasis_nodes,basis_nodes,nodes,weights);
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left) + diffmat*u;
+end
+
+"""
+    rhs_inviscid_burgers_pseudo!(du,u,p,t)
+
+"""
+function rhs_inviscid_burgers_pseudo!(du,u,p,t)
+    basis_left, basis_right, Dbasis_nodes, basis_nodes, nodes, weights = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis_pseudo(u,Dbasis_nodes,basis_nodes,nodes,weights);
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left);
+  end
+
+"""
+    rhs_kdv_pseudo!(du,u,p,t)
+
+"""
+function rhs_kdv_pseudo!(du,u,p,t)
+    basis_left, basis_right, diff3mat, Dbasis_nodes, basis_nodes, nodes, weights = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis_pseudo(u,Dbasis_nodes,basis_nodes,nodes,weights);
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left) + diff3mat*u;
+  end
+
+"""
+    rhs_ks_pseudo!(du,u,p,t)
+    
+No padding to account for the impact of potential aliasing 
+
+"""
+function rhs_ks_pseudo!(du,u,p,t)
+    basis_left, basis_right, diffmat, diff4mat, Dbasis_nodes, basis_nodes, nodes, weights = p;
+    u_approx_left = u'*basis_left;
+    u_approx_right = u'*basis_right;
+    flux = quadratic_nonlinear_basis_pseudo(u,Dbasis_nodes,basis_nodes,nodes,weights); 
+    du .= flux - burgers_flux(u_approx_right,u_approx_left)*(basis_right-basis_left) + diffmat*u + diff4mat*u;
+end
+
+"""
+    rhs_advection_diffusion_dirichlet!(du,u,p,t)
+
+RHS for the advection-diffusion equation \$u_t = - u_x + ν u_{xx}\$ with Dirichlet boundary conditions for numerical integration in custom basis space using discontinuous Galerkin method and where ν is the viscosity.
+
+"""
+function rhs_advection_diffusion_dirichlet!(du,u,p,t)
+    addg1,addg2,alpha,b0,b1,uin,uout,Dmatrixg = p
+    du .= addg1*u + abs(alpha)*b0*uin + addg2*(-Dmatrixg*u+b1*uout-b0*uin);
+end
+
+"""
+    generate_legendre_basis_dirichlet_advection_diffusion(L1,L2,nodes,weights,tspan,initial_condition,modes,uin,uout;dt=1e-3,rtol=1e-10,atol=1e-14,alpha=1.0,nu=0.1)
+
+"""
+function generate_legendre_basis_dirichlet_advection_diffusion(L1,L2,nodes,weights,tspan,initial_condition,modes,uin,uout;dt=1e-3,rtol=1e-10,atol=1e-14,alpha=1.0,nu=0.1)
+
+    # Build Legendre basis and basis derivatives
+    P_basis = legendre_basis_build(modes,L1,L2);
+    DP_basis = basis_derivative(P_basis);
+
+    P_basis_nodes = basis_eval(P_basis,nodes);
+    DP_basis_nodes = basis_eval(DP_basis,nodes);
+    b0 = basis_eval(P_basis,L1)[:];
+    b1 = basis_eval(P_basis,L2)[:];
+
+    W = diagm(0 => weights);
+
+    # Parameters for discontinuous Galerkin method
+    Dmatrixg = DP_basis_nodes'*W*P_basis_nodes;
+    addg1 = (alpha*Dmatrixg-abs(alpha)*(b1*b1'));
+    addg2 = nu*(-Dmatrixg+b1*b1'-b0*b0');
+
+    params = [addg1,addg2,alpha,b0,b1,uin,uout,Dmatrixg];
+
+    # Project the initial condition onto Legendre polynomials
+    u0 = expansion_coefficients(P_basis_nodes,initial_condition,nodes,weights);
+  
+    t_length = tspan[2]/dt+1;
+  
+    # Solve the system of ODEs
+    prob = ODEProblem(rhs_advection_diffusion_dirichlet!,u0,tspan,params);
+    sol = solve(prob,Kvaerno4(autodiff=false,linsolve=LinSolveFactorize(lu!)),reltol=rtol,abstol=atol,saveat=dt)
+
+    # Return solution to real space
+    u_sol = zeros(size(sol.t,1),size(nodes,1));
+    for j in 1:size(sol.t,1)
+        u_sol[j,:] = expansion_approximation(P_basis_nodes,sol.u[j],nodes)
+    end
+      return u_sol, sol.t, sol.u
+
 end

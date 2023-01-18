@@ -106,7 +106,7 @@ Generate a specified `number_functions` of random periodic vectors for the distr
 """
 function generate_sinusoidal_functions_2_parameter(x_locations,number_functions)
     values = rand(-1.0:(2.0/(number_functions*10)):1.0,(number_functions,2)); # alpha, beta parameters
-    initial_base = vcat(values,[0.0 0.0]);
+    initial_base = vcat(values,[1.0 0.0]);
     if size(unique(initial_base,dims=2),1) != size(initial_base,1)
         error("Duplicate multiplier sets or generating function included in data!")
     end
@@ -172,28 +172,19 @@ function generate_periodic_train_test_initial_conditions(number_sensors,number_t
 end
 
 """
-    generate_periodic_train_test(t_span,number_sensors,number_test_functions,number_train_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt=1e-3,nu_val=0.1,domain="periodic",fnc=(x)->sin(x/2)^2)
+    generate_periodic_train_test(t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt=1e-3,nu_val=0.1,fnc=(x)->sin(x/2)^2)
 
 Generate the training and testing data for a specified `pde_function_handle` for periodic boundary conditions using a Fourier spectral method. Defaults to IC \$f(\\sin^2(x/2))\$ and \$x ∈ [0,1]\$.
 
 """
-function generate_periodic_train_test(t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt_size=1e-3,nu_val=0.1,domain="periodic",fnc=(x)->sin(x/2)^2)
+function generate_periodic_train_test(t_span,number_sensors,number_train_functions,number_test_functions,number_solution_points,pde_function_handle;L1=0,L2=2*pi,length_scale=0.5,batch=number_solution_points,dt_size=1e-3,nu_val=0.1,fnc=(x)->sin(x/2)^2)
 
-    if domain == "periodic"
-        x_full = range(L1,stop = L2,length = number_sensors+1); # Full domain for periodic number of sensors
-        random_ics = generate_periodic_functions(fnc,x_full,Int(number_train_functions + number_test_functions),length_scale)
-        dL = abs(L2-L1);
-        # Set up x domain and wave vector for spectral solution
-        x = trapezoid(number_sensors,L1,L2)[1];
-        k = reduce(vcat,(2*π/dL)*[0:number_sensors/2-1 -number_sensors/2:-1]);
-    elseif domain == "full"
-        x_full = range(L1,stop = L2,length = number_sensors); # Full domain for periodic number of sensors
-        random_ics = generate_periodic_functions(fnc,x_full,Int(number_train_functions + number_test_functions),length_scale)
-        dL = abs(L2-L1);
-        # Set up x domain and wave vector for spectral solution
-        x = trapezoid((number_sensors-1),L1,L2)[1];
-        k = reduce(vcat,(2*π/dL)*[0:Int(number_sensors-1)/2-1 -Int(number_sensors-1)/2:-1]);
-    end
+    x_full = range(L1,stop = L2,length = number_sensors+1); # Full domain for periodic number of sensors
+    random_ics = generate_periodic_functions(fnc,x_full,Int(number_train_functions + number_test_functions),length_scale)
+    dL = abs(L2-L1);
+    # Set up x domain and wave vector for spectral solution
+    x = trapezoid(number_sensors,L1,L2)[1];
+    k = reduce(vcat,(2*π/dL)*[0:number_sensors/2-1 -number_sensors/2:-1]);
 
     # Generate the dataset using spectral method
     t_length = t_span[2]/dt_size + 1;
@@ -205,32 +196,17 @@ function generate_periodic_train_test(t_span,number_sensors,number_train_functio
     test_loc = zeros(2,number_solution_points,number_test_functions);
     test_target = zeros(1,number_solution_points,number_test_functions);
 
-    if domain == "periodic"
-        @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
-            interp_train_sample = random_ics[1:end-1,i];
-            u_train = generate_fourier_solution(L1,L2,t_span,number_sensors,interp_train_sample,pde_function_handle,dt=dt_size)[1];
-            train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x,t,u_train,interp_train_sample,number_solution_points);
-        end
-        @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
-            interp_test_sample = random_ics[1:end-1,Int(number_train_functions+i)];
-            u_test = generate_fourier_solution(L1,L2,t_span,number_sensors,interp_test_sample,pde_function_handle,dt=dt_size)[1];
-            test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x,t,u_test,interp_test_sample,number_solution_points);
-        end
-    elseif domain == "full"
-        @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
-            interp_train_sample_fourier = random_ics[1:end-1,i];
-            u_train_fourier = generate_fourier_solution(L1,L2,t_span,Int(number_sensors-1),interp_train_sample_fourier,pde_function_handle,dt=dt_size)[1];
-            interp_train_sample = random_ics[:,i];
-            u_train = periodic_fill_solution(u_train_fourier);
-            train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x_full,t,u_train,interp_train_sample,number_solution_points);
-        end
-        @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
-            interp_test_sample_fourier = random_ics[1:end-1,Int(number_train_functions+i)];
-            u_test_fourier = generate_fourier_solution(L1,L2,t_span,Int(number_sensors-1),interp_test_sample_fourier,pde_function_handle,dt=dt_size)[1];
-            interp_test_sample = random_ics[:,Int(number_train_functions+i)];
-            u_test = periodic_fill_solution(u_test_fourier);
-            test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x_full,t,u_test,interp_test_sample,number_solution_points);
-        end
+    @showprogress 1 "Building training dataset..." for i in 1:number_train_functions
+
+        interp_train_sample = random_ics[1:end-1,i];
+        u_train = generate_fourier_solution(L1,L2,t_span,number_sensors,interp_train_sample,pde_function_handle,dt=dt_size)[1];
+        train_ic[:,:,i], train_loc[:,:,i], train_target[:,:,i] = solution_extraction(x,t,u_train,interp_train_sample,number_solution_points);
+    end
+    @showprogress 1 "Building testing dataset..." for i in 1:number_test_functions
+        
+        interp_test_sample = random_ics[1:end-1,Int(number_train_functions+i)];
+        u_test = generate_fourier_solution(L1,L2,t_span,number_sensors,interp_test_sample,pde_function_handle,dt=dt_size)[1];
+        test_ic[:,:,i], test_loc[:,:,i], test_target[:,:,i] = solution_extraction(x,t,u_test,interp_test_sample,number_solution_points);
     end
 
     # Combine data sets from each function
@@ -533,4 +509,48 @@ Saves the initial conditions from the `train_ic` and `test_ic`.
 function save_data_initial_conditions(train_ic,test_ic,number_train_functions,number_test_functions,pde_function)
     @save @sprintf("train_ic_data_%i_%s.bson",number_train_functions,pde_function) train_ic
     @save @sprintf("test_ic_data_%i_%s.bson",number_test_functions,pde_function) test_ic
+end
+
+"""
+    feature_expansion_single(L1,L2,neurons,x)
+
+"""
+function feature_expansion_single(L1,L2,neurons,x)
+    omega = 2*pi/(abs(L2-L1));
+    coeffs = zeros(neurons);
+    sincount = 1;
+    coscount = 1;
+    for i in 1:2:neurons
+        coeffs[i] = sin(sincount*omega*x);
+        sincount += 1;
+    end
+    for i in 2:2:neurons
+        coeffs[i] = cos(coscount*omega*x);
+        coscount += 1;
+    end
+    return coeffs
+end
+
+"""
+    feature_expansion_set(L1,L2,neurons,solution_loc)
+
+"""
+function feature_expansion_set(L1,L2,neurons,solution_loc)
+    expansion = zeros(neurons,size(solution_loc,2));
+    for i in 1:size(solution_loc,2)
+        expansion[:,i] = feature_expansion_single(L1,L2,neurons,solution_loc[2,i]);
+    end
+    return expansion
+end
+
+"""
+    feature_expansion_set_x(L1,L2,neurons,x_loc)
+
+"""
+function feature_expansion_set_x(L1,L2,neurons,x_loc)
+    expansion = zeros(neurons,size(x_loc,2));
+    for i in 1:size(x_loc,2)
+        expansion[:,i] = feature_expansion_single(L1,L2,neurons,x_loc[1,i]);
+    end
+    return expansion
 end
