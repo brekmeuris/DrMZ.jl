@@ -45,7 +45,7 @@ function generate_DG_results(pde_function,pde_function_handle_basis,pde_function
 
   t_span = (0:args.dt:args.tspan[2]);
 
-  basis, Dbasis, S, utilde = build_basis(trunk,args.L1,args.L2,M,x,w);
+  basis, Dbasis, S, utilde = build_basis(trunk,args.L1,args.L2,M,x,w,Int(args.N-1));
   r = length(basis);
 
   plts_full = plot((1:1:length(S)),S,label=false,seriestype=:scatter,yaxis = :log10,xlabel = L"k", ylabel = L"$\sigma_k$",xlims=(1,length(S)))

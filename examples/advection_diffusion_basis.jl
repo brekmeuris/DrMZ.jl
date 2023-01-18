@@ -37,7 +37,7 @@ function generate_basis_function_results(pde_function;kws...)
     x, w = gauss_legendre(args.N,args.L1,args.L2);
 
     # Generate custom basis functions
-    basis, Dbasis, S, utilde = build_basis(trunk,args.L1,args.L2,M,x,w);
+    basis, Dbasis, S, utilde = build_basis(trunk,args.L1,args.L2,M,x,w,Int(args.N-1));
 
     # Plot singular values
     pltsing = plot((1:1:length(S)),S,label=false,seriestype=:scatter,yaxis = :log10,xlabel = L"k", ylabel = L"$\sigma_k$",xlims=(1,length(S)))
