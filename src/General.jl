@@ -447,45 +447,6 @@ function dlegendre_norm_basis_build(nmax,L1,L2)
 end
 
 """
-    bsplines_eval(x,basis,p,n,b)
-
-"""
-function bsplines_eval(x::Float64,basis,p,n,b)
-    indices=(p+1):n+2*p;
-    bmat = [basis[i](x) for i=indices];
-    return bmat'*b;
-end
-function bsplines_eval(x::Any,basis,p,n,b)
-    indices=(p+1):n+2*p;
-    bmat = [basis[i](x) for i=indices];
-    return bmat'*b;
-end
-function bsplines_eval(x::Array{Float64,1},basis,p,n,b)
-    bmat = basismatrix(basis,x,indices=(p+1):n+2*p);
-    return bmat*b;
-end
-
-"""
-    bsplines_interpolate_periodic(x,y,p)
-
-"""
-function bsplines_interpolate_periodic(x,y,p)
-    n = size(x,1) - 1;
-    period = x[end]-x[1];
-    k = vcat(x[end-p:end-1] .- period,x,x[1+1:1+p] .+ period);
-    bsbasis = BSplineBasis(p+1,k);
-    bmat = basismatrix(bsbasis,x,indices=(p+1):n+p)[1:n,:];
-    for i in 1:p-1
-        for j in 1:i
-        bmat[n+i-p+1,j] += bsplines(bsbasis,x[i+n-p+1])[p+1+j+n-1];
-        end
-    end
-    b = bmat \ y[1:end-1]
-    b = vcat(b,b[1:p]);
-    return (z) -> bsplines_eval(z,bsbasis,p,n,b)
-end
-
-"""
     linear_reg(x,y)
 
 """

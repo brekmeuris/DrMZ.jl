@@ -33,7 +33,6 @@ export error_se, error_rel, mse_error, norm_rel_error, norm_rel_error_continuous
        trapezoid,
        orthonormal_check,
        legendre_shift, legendre_norm, dlegendre_norm, legendre_norm_basis_build, dlegendre_norm_basis_build,
-       bsplines_eval, bsplines_interpolate_periodic,
        linear_reg
 
 # Export the functions for OperatorNN.jl
@@ -58,7 +57,7 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        generate_fourier_solution_real, generate_fourier_solution_esdirk_real, generate_fourier_solution_implicit_real,
        advection_pde_real!, advection_diffusion_pde_real!, viscous_burgers_pde_real!, quadratic_nonlinear_real, kdv_pde_real!, ks_pde_real!,
        quadratic_nonlinear_basis_pseudo, rhs_viscous_burgers_pseudo!, rhs_inviscid_burgers_pseudo!, rhs_kdv_pseudo!,rhs_ks_pseudo!,
-       rhs_advection_diffusion_dirichlet!
+       rhs_advection_diffusion_dirichlet!, generate_legendre_basis_dirichlet_advection_diffusion
 
 # Export the functions for DBasis.jl
 export trunk_build, basis_interpolate, dbasis_interpolate, trunk_ortho_build, build_basis,
