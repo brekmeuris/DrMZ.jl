@@ -258,22 +258,22 @@ end
 """
     fft_norm(solution)
 
-Compute the FFT normalized by \$\\frac{1}{N}\$.
+Compute the FFT normalized by \$\\frac{1}{N}\$ or \$\\frac{1}{N*M}\$ for the 2D case.
 
 """
 function fft_norm(solution)
-    N = size(solution,1);
+    N = length(solution);
     return (1/N)*fft(solution)
 end
 
 """
     ifft_norm(solution)
 
-Compute the IFFT normalized by \$N\$.
+Compute the IFFT normalized by \$N\$ \$N*M\$ for the 2D case.
 
 """
 function ifft_norm(solution)
-    N = size(solution,1);
+    N = length(solution);
     return N*ifft(solution)
 end
 

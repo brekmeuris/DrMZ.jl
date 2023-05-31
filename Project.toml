@@ -1,7 +1,7 @@
 name = "DrMZ"
 uuid = "48533c53-1ac1-4690-9adc-eb6b74238378"
 authors = ["Brek Meuris"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
@@ -23,17 +23,17 @@ ToeplitzMatrices = "c751599d-da0a-543b-9d20-d0a503d91d24"
 
 [compat]
 BSON = "0.2, 0.3"
-DifferentialEquations = "6.10"
+DifferentialEquations = "6.10, 7.0"
 Distributions = "0.23"
 FFTW = "1.0, 1.1"
 FastGaussQuadrature = "0.4"
-Flux = "0.10"
+Flux = "0.12, 0.13"
 ForwardDiff = "0.10"
-Interpolations = "0.12, 0.13"
+Interpolations = "0.10, 0.13"
 LegendrePolynomials = "0.3.3"
 ProgressMeter = "1.0, 1.5"
 ToeplitzMatrices = "0.6"
-julia = "1.0.5"
+julia = "1.6.7"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
