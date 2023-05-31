@@ -554,3 +554,43 @@ function feature_expansion_set_x(L1,L2,neurons,x_loc)
     end
     return expansion
 end
+
+"""
+    exp_kernel_sine_2D(x,y,l)
+
+"""
+function exp_kernel_sine_2D(x,y,l)
+    return exp(-(1/(2*l^2))*norm(sin(x/2)^2 - sin(y/2)^2)^2)
+end
+
+"""
+    covariance_matrix_2D(X,Y,l)
+
+"""
+function covariance_matrix_2D(X,Y,l)
+    covgrid = [X[:] Y[:]];
+    mu = zeros(size(covgrid,1));
+    sigma = zeros(size(covgrid,1),size(covgrid,1));
+    for i in 1:size(covgrid,1)
+        for j in 1:size(covgrid,1)
+            x1 = covgrid[i,1];
+            y1 = covgrid[i,2];
+            x2 = covgrid[j,1];
+            y2 = covgrid[j,2];
+            sigma[i,j] = exp_kernel_sine_2D(x1,x2,l)*exp_kernel_sine_2D(y1,y2,l);
+        end
+    end
+    mineig = eigmin(sigma);
+    sigma -= mineig * I;
+    return sigma, mu
+end
+
+"""
+    generate_periodic_functions_2D(X,Y,number_functions,length_scale)
+
+"""
+function generate_periodic_functions_2D(X,Y,number_functions,length_scale)
+    sigma, mu = covariance_matrix_2D(X,Y,length_scale);
+    d = MvNormal(mu,Symmetric(sigma)); # Multivariate distribution
+    return rand(d,Int(number_functions)); # Generate samples from provided distribution
+end

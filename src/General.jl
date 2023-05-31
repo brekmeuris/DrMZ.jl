@@ -454,3 +454,13 @@ function linear_reg(x,y)
     X = [ones(size(x,1)) x];
     return (X'*X)\X' * y
   end
+
+"""
+    ndgrid(v1, v2)
+"""
+function ndgrid(v1, v2)
+    m, n = length(v1), length(v2)
+    v1 = reshape(v1, m, 1)
+    v2 = reshape(v2, 1, n)
+    return (repeat(v1, 1, n), repeat(v2, m, 1))
+end
