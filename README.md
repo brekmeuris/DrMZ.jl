@@ -13,7 +13,7 @@ This package is in a pre-release state with each update potentially breaking. Th
 
 ## Adding this package:
 
-This package has been tested on the long-term support (LTS) release of Julia 1.0.5. [Download Julia 1.0.5](https://julialang.org/downloads/#long_term_support_release) and check out the [platform specific instructions](https://julialang.org/downloads/platform/) for instructions on adding Julia to PATH.
+This package was recently upgraded to the long-term support (LTS) release of Julia 1.6.7. [Download Julia 1.6.7](https://julialang.org/downloads/#long_term_support_release) and check out the [platform specific instructions](https://julialang.org/downloads/platform/) for instructions on adding Julia to PATH. This may have introduced breaking changes which are being reviewed. The original version based on Julia 1.0.5 is available via release tag one.
 
 To add the package from GitHub link using Julia REPL:
 
@@ -50,4 +50,4 @@ Lu, L., Jin, P., & Karniadakis, G. E. (2020). DeepONet: Learning nonlinear opera
 
 Details about the custom basis function construction and examples for using the functions to evolve PDEs can be found in:
 
-Meuris, B., Qadeer, S., & Stinis, P. (2021). Machine-learning custom-made basis functions for partial differential equations. arXiv preprint arXiv:2111.05307.
+Meuris, B., Qadeer, S., & Stinis, P. (2023). Machine-learning-based spectral methods for partial differential equations. Scientific Reports, 13(1), 1739.
