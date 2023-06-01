@@ -21,6 +21,7 @@ using FastGaussQuadrature
 using ForwardDiff
 using LegendrePolynomials
 using BSplines
+using MAT
 
 # Export the functions for General.jl
 export error_se, error_rel, mse_error, norm_rel_error, norm_rel_error_continuous, norm_infinity_error, ic_error, average_ic_error, average_error,
@@ -33,7 +34,8 @@ export error_se, error_rel, mse_error, norm_rel_error, norm_rel_error_continuous
        trapezoid,
        orthonormal_check,
        legendre_shift, legendre_norm, dlegendre_norm, legendre_norm_basis_build, dlegendre_norm_basis_build,
-       linear_reg
+       linear_reg,
+       data_extract_matlab
 
 # Export the functions for OperatorNN.jl
 export train_model, loss_all, predict,

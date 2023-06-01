@@ -453,4 +453,41 @@ end
 function linear_reg(x,y)
     X = [ones(size(x,1)) x];
     return (X'*X)\X' * y
-  end
+end
+
+"""
+    data_extract_matlab(M,N)
+    
+"""
+function data_extract_matlab(M,N)
+    # Extract the data from MATLAB
+    exact_file = matopen(@sprintf("exact_derivative_M_%i_N_%i.mat",M,N));
+    exact = read(exact_file,"exact");
+    close(exact_file);
+
+    R0_file = matopen(@sprintf("R0_M_%i_N_%i.mat",M,N)); # Eventually include as an offset to exact?
+    R0 = read(R0_file,"R0");
+    close(R0_file);
+
+    R1_file = matopen(@sprintf("R1_M_%i_N_%i.mat",M,N));
+    R1 = read(R1_file,"R1");
+    close(R1_file)
+
+    R2_file = matopen(@sprintf("R2_M_%i_N_%i.mat",M,N));
+    R2 = read(R2_file,"R2");
+    close(R2_file);
+
+    R3_file = matopen(@sprintf("R3_M_%i_N_%i.mat",M,N));
+    R3 = read(R3_file,"R3");
+    close(R3_file);
+
+    R4_file = matopen(@sprintf("R4_M_%i_N_%i.mat",M,N));
+    R4 = read(R4_file,"R4");
+    close(R4_file);
+
+    t_list_file = matopen(@sprintf("t_list_M_%i.mat",M));
+    t_list = read(t_list_file,"t_list");
+    close(t_list_file);
+
+    return exact, R0, R1, R2, R3, R4, t_list
+end
