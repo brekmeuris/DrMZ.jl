@@ -951,56 +951,14 @@ end
 """
     advection_pde_2D!(duhat,uhat,p,t)
 
-RHS for the 2D advection equation ``u_t = - u_x - u_y`` for numerical integration in Fourier space.
+RHS for the 2D advection equation ``u_t = - \\alpha u_x - \\beta u_y`` for numerical integration in Fourier space.
 
 """
 function advection_pde_2D!(duhat,uhat,p,t)
-    K,N,M = p;
+    K,N,M = p; # K = α KX + β KY
     # Set the most negative modes to zero to prevent an asymmetry
     uhat = reshape(uhat,N,N);
     uhat[Int(N/2)+1,:] = zeros(size(uhat,2));
     uhat[:,Int(M/2)+1] = zeros(size(uhat,1));
     duhat .= -im*K.*uhat[:]
-end
-
-"""
-    generate_fourier_solution_2D(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14,alpha=1.0,beta=1.0)
-
-"""
-function generate_fourier_solution_2D(L1,L2,tspan,N,initial_condition,pde_function;dt=1e-3,rtol=1e-10,atol=1e-14,alpha=1.0,beta=1.0)
-    # Set up x and k grid for domain;
-    x = trapezoid(N,L1,L2)[1];
-    k = reduce(vcat,[0:N/2-1 -N/2:-1]);
-
-    xygrid = ndgrid(x,x);
-    X = xygrid[1];
-    Y = xygrid[2];
-
-    kxygrid = ndgrid(k,k);
-    KX = kxygrid[1];
-    KY = kxygrid[2];
-    
-    # Transform random initial condition to Fourier domain and reshape
-    uhat0 = fft_norm(initial_condition);
-
-    uhat0vec = reshape(uhat0,N^2);
-
-    # Set up linear operators and vectorize
-    K = alpha*KX + beta*KY;
-
-    Kvec = reshape(K,N^2);
-    p = [Kvec,N,N];
-    
-    # Solve the system of ODEs in Fourier domain
-    prob = ODEProblem(pde_function,uhat0vec,tspan,p);
-    sol = solve(prob,Tsit5(),reltol=rtol,abstol=atol,saveat = dt)
-
-    # Transform the solution back to real domain and reshape results
-    u_sol = zeros(N,N,size(sol.t,1));
-    kxy = zeros(ComplexF64,N,N,size(sol.t,1));
-    Threads.@threads for j in 1:size(sol.t,1) 
-        kxy[:,:,j] = reshape(sol.u[j],N,N);
-        u_sol[:,:,j] = real.(ifft_norm(kxy[:,:,j]));
-    end
-    return u_sol, kxy, sol.t, K, KX, KY
 end

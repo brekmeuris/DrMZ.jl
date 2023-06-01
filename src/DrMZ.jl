@@ -60,7 +60,7 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        advection_pde_real!, advection_diffusion_pde_real!, viscous_burgers_pde_real!, quadratic_nonlinear_real, kdv_pde_real!, ks_pde_real!,
        quadratic_nonlinear_basis_pseudo, rhs_viscous_burgers_pseudo!, rhs_inviscid_burgers_pseudo!, rhs_kdv_pseudo!,rhs_ks_pseudo!,
        rhs_advection_diffusion_dirichlet!, generate_legendre_basis_dirichlet_advection_diffusion,
-       advection_pde_2D!, generate_fourier_solution_2D
+       advection_pde_2D!
 
 # Export the functions for DBasis.jl
 export trunk_build, basis_interpolate, dbasis_interpolate, trunk_ortho_build, build_basis,
