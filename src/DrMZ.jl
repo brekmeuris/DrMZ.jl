@@ -33,14 +33,16 @@ export error_se, error_rel, mse_error, norm_rel_error, norm_rel_error_continuous
        trapezoid,
        orthonormal_check,
        legendre_shift, legendre_norm, dlegendre_norm, legendre_norm_basis_build, dlegendre_norm_basis_build,
-       linear_reg
+       linear_reg,
+       ndgrid
 
 # Export the functions for OperatorNN.jl
 export train_model, loss_all, predict,
        build_dense_model, build_branch_model, build_trunk_model,
        exp_kernel_periodic, generate_sinusoidal_functions_2_parameter, generate_periodic_train_test_initial_conditions, generate_periodic_train_test, generate_periodic_train_test_muscl, generate_periodic_train_test_esdirk, generate_periodic_train_test_implicit, generate_periodic_functions, solution_extraction,
        save_model, load_model, load_branch, load_trunk, save_data, load_data, load_data_initial_conditions, load_data_train_test, load_data_initial_conditions, save_data_initial_conditions,
-       feature_expansion_single, feature_expansion_set, feature_expansion_set_x
+       feature_expansion_single, feature_expansion_set, feature_expansion_set_x,
+       exp_kernel_sine_2D, covariance_matrix_2D, generate_periodic_functions_2D
 
 # Export the functions for PDESolve.jl
 export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_burgers_pde!, kdv_explicit_pde!, kdv_implicit_pde!, kdv_pde!, ks_explicit_pde!, ks_implicit_pde!, ks_pde!, rhs_advection!, rhs_advection_diffusion!, burgers_flux, quadratic_nonlinear_triple_product_basis, quadratic_nonlinear_basis, rhs_viscous_burgers!, rhs_inviscid_burgers!, rhs_explicit_kdv!, rhs_implicit_kdv!, rhs_kdv!, rhs_explicit_ks!, rhs_implicit_ks!, rhs_ks!,
@@ -57,7 +59,8 @@ export advection_pde!, advection_diffusion_pde!, inviscid_burgers_pde!, viscous_
        generate_fourier_solution_real, generate_fourier_solution_esdirk_real, generate_fourier_solution_implicit_real,
        advection_pde_real!, advection_diffusion_pde_real!, viscous_burgers_pde_real!, quadratic_nonlinear_real, kdv_pde_real!, ks_pde_real!,
        quadratic_nonlinear_basis_pseudo, rhs_viscous_burgers_pseudo!, rhs_inviscid_burgers_pseudo!, rhs_kdv_pseudo!,rhs_ks_pseudo!,
-       rhs_advection_diffusion_dirichlet!, generate_legendre_basis_dirichlet_advection_diffusion
+       rhs_advection_diffusion_dirichlet!, generate_legendre_basis_dirichlet_advection_diffusion,
+       advection_pde_2D!, generate_fourier_solution_2D
 
 # Export the functions for DBasis.jl
 export trunk_build, basis_interpolate, dbasis_interpolate, trunk_ortho_build, build_basis,
